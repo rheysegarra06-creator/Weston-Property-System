@@ -118,7 +118,10 @@ if(!state){
 }
 var selectedUnit=null;
 function $(id){return document.getElementById(id)}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify(state));return true}
+ catch(e){alert("The work order could not be saved because this iPhone's browser storage is full. Photos were compressed; please try again with fewer/smaller photos.");return false}
+}
 function log(msg){state.activity.unshift(new Date().toLocaleString()+" — "+msg);state.activity=state.activity.slice(0,20);save()}
 function occupied(u){
  if(u.moveOut){var d=new Date(u.moveOut+"T23:59:59");if(!isNaN(d)&&d<=new Date())return false}
@@ -240,7 +243,23 @@ function readPhotos(files,done){
  var a=Array.from(files||[]),out=[];
  if(!a.length)return done([]);
  var i=0;
- function next(){if(i>=a.length)return done(out);var f=a[i++];var rd=new FileReader();rd.onload=function(){out.push(rd.result);next()};rd.readAsDataURL(f)}
+ function next(){
+  if(i>=a.length)return done(out);
+  var f=a[i++],rd=new FileReader();
+  rd.onload=function(){
+   var img=new Image();
+   img.onload=function(){
+    var max=1200,w=img.width,h=img.height;
+    if(w>max||h>max){if(w>=h){h=Math.round(h*max/w);w=max}else{w=Math.round(w*max/h);h=max}}
+    var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+    var ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,w,h);
+    out.push(canvas.toDataURL("image/jpeg",0.72));next();
+   };
+   img.onerror=function(){out.push(rd.result);next()};
+   img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+ }
  next();
 }
 function previewBeforePhotos(){
@@ -274,8 +293,12 @@ function addWorkOrder(){
    if(request){request.status="Completed";request.workOrderId=order.id}
    log("Completed work order for Unit "+u.no+" — "+u.tenant);
    $("woProblem").value="";$("woWorkDone").value="";$("woDueDate").value="";$("woLabourHours").value="";$("woLabourCost").value="";$("woMaterialCost").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("woAfterPhotos").value="";$("beforePreview").innerHTML="";$("afterCreatePreview").innerHTML="";
-   save();renderAll();showScreen("history");
-   setTimeout(function(){alert("DONE! Work order saved automatically to this tenant's Work Order History.")},50);
+   if(!save())return;
+   var saved=JSON.parse(localStorage.getItem(KEY)||"null");
+   var confirmed=saved&&saved.orders&&saved.orders.some(function(x){return String(x.id)===String(order.id)&&x.status==="Completed"});
+   if(!confirmed){alert("The Work Order was not confirmed as saved. Please try again.");return}
+   renderAll();showScreen("history");
+   setTimeout(function(){alert("DONE! Saved to Unit "+u.no+" / "+u.tenant+" Work Order History.")},50);
   });
  });
 }
@@ -302,7 +325,7 @@ function renderHistory(){
  var a=state.orders.filter(function(o){
    return o.building===currentBuilding() && (o.status==="Completed" || o.completedAt);
  }).filter(function(o){
-   var text="WO-"+String(o.id)+" "+o.unit+" "+(o.tenant||"")+" "+(o.problem||"");
+   var text="WO-"+String(o.id)+" "+o.unit+" "+(o.tenant||"")+" "+(o.problem||"")+" "+(o.workPerformed||"")+" "+(o.staff||"");
    return text.toLowerCase().indexOf(q)>=0;
  });
  $("historyList").innerHTML=a.map(function(o){
