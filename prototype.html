@@ -204,10 +204,10 @@ function renderHistory(){
   }
  });
  records.sort(function(a,b){return b.time-a.time});
- $("historySummary").textContent="Unit "+u+" • "+records.length+" history record"+(records.length===1?"":"s");
+ $("historySummary").textContent="🏢 Building "+b+" • Unit "+u+" • "+records.length+" history record"+(records.length===1?"":"s");
  $("historyList").innerHTML=records.map(function(r){
-  return '<div class="item"><div><b>'+escapeHTML(r.text)+'</b></div></div>';
- }).join("")||'<p class="muted">No history recorded for Unit '+escapeHTML(u)+' yet.</p>';
+  return '<div class="item"><div><span class="badge">Building '+escapeHTML(b)+' • Unit '+escapeHTML(u)+'</span><br><b>'+escapeHTML(r.text)+'</b></div></div>';
+ }).join("")||'<p class="muted">No history recorded for Building '+escapeHTML(b)+' • Unit '+escapeHTML(u)+' yet.</p>';
 }
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(function(x){var s=typeof x==="string"?x:(x&&x.text?x.text:"");return '<div class="item"><small>'+escapeHTML(s)+'</small></div>'}).join("")||'<p class="muted">No activity yet.</p>'}
 function renderUnits(){
