@@ -47,9 +47,8 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 </section>
 
 <section id="units" class="screen">
-<div class="card"><h2>🏠 Units</h2><div class="notice"><b>🏢 Building <span id="unitsBuildingLabel">1775</span></b> — Showing units for this building.</div><p class="muted">26 floors × 10 units = 260 units per building.</p>
+<div class="card"><h2>🏠 Units</h2><div class="notice"><label class="muted"><b>🏢 Building</b></label><select id="unitsBuildingFilter"><option value="1775">1775</option><option value="1765">1765</option></select><p style="margin:4px 0 0"><b>Showing units for this building.</b></p></div><p class="muted">26 floors × 10 units = 260 units per building.</p>
 <div class="row">
-<div><label class="muted">Building</label><select id="unitsBuildingFilter"><option value="1775">1775</option><option value="1765">1765</option></select></div>
 <div><label class="muted">Floor</label><select id="floorFilter"></select></div>
 </div>
 <div id="unitList"></div><div id="unitDetails"></div>
@@ -217,7 +216,7 @@ function renderHistory(){
 }
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(function(x){var s=typeof x==="string"?x:(x&&x.text?x.text:"");return '<div class="item"><small>'+escapeHTML(s)+'</small></div>'}).join("")||'<p class="muted">No activity yet.</p>'}
 function renderUnits(){
- var b=$("unitsBuildingFilter").value||currentBuilding();$("unitsBuildingLabel").textContent=b;
+ var b=$("unitsBuildingFilter").value||currentBuilding();
  $("building").value=b;
  var q="",f=$("floorFilter").value;
  var a=state.units.filter(function(u){return u.building===b&&(f==="all"||String(u.floor)===f)&&(u.no+" "+u.tenant).toLowerCase().indexOf(q)>=0});
