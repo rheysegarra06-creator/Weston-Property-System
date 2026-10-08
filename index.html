@@ -22,7 +22,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{ma
 .photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.photoGrid img{width:100%;aspect-ratio:1;border-radius:9px;object-fit:cover}.notice{padding:12px;border-radius:11px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.successbox{padding:12px;border-radius:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}.dangerbox{padding:12px;border-radius:11px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.hr{border-top:1px solid var(--line);margin:15px 0}.hidden{display:none!important}
 .bottom{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px #0000000b;display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
 .bottom .nav{max-width:900px;width:100%;display:grid;grid-template-columns:repeat(5,1fr)}.nav button{background:#fff;padding:9px 3px 8px;color:#64748b;font-size:11px;font-weight:850}.nav button.active{color:var(--blue)}.nav span{display:block;font-size:20px;margin-bottom:2px}
-.back{margin-bottom:12px}
+.floorNav{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:12px 0}.floorNav .btn:last-child{text-align:right}.floorCurrent{text-align:center;min-width:110px}.floorCurrent b{display:block;font-size:18px}.floorCurrent small{display:block;color:var(--muted);font-size:11px}.back{margin-bottom:12px}
 @media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.actions{grid-template-columns:repeat(4,1fr)}}
 header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-size:24px}header p{margin:0 0 12px;color:#cbd5e1}#nav{display:flex;gap:7px;flex-wrap:wrap}#nav button{background:#334155;color:#fff;border-radius:9px;padding:9px 12px;font-weight:800}#nav button.active{background:#2563eb}.app{padding-bottom:30px}</style>
 </head>
@@ -53,7 +53,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 
 <section id="units" class="screen">
 <div class="card"><h2>🏠 Units & Occupancy</h2><p class="muted">Each building has 26 floors × 10 units = 260 units. Every unit shows Occupied or Vacant.</p><div class="grid"><div class="stat"><b id="occupiedUnits">0</b>Occupied</div><div class="stat"><b id="vacantUnits">0</b>Vacant</div><div class="stat"><b id="totalUnits">260</b>Total Units</div><div class="stat"><b id="occupancyRate">0%</b>Occupancy</div></div><div class="hr"></div>
-<div class="row"><div><label class="muted">Floor</label><select id="floorFilter"></select></div><div><label class="muted">Search</label><input id="unitSearch" placeholder="Unit or tenant"></div></div>
+<div class="floorNav"><button type="button" class="btn small" id="prevFloor">▼ Previous Floor</button><div class="floorCurrent"><b id="floorTitle">All Floors</b><small>One floor at a time</small></div><button type="button" class="btn small" id="nextFloor">▲ Next Floor</button></div><div class="row"><div class="hidden"><label class="muted">Floor</label><select id="floorFilter"></select></div><div style="width:100%"><label class="muted">Search</label><input id="unitSearch" placeholder="Unit or tenant"></div></div>
 <div id="unitList"></div><div id="unitDetails"></div>
 </div></section>
 
@@ -119,7 +119,7 @@ $("nav").addEventListener("click",function(e){var b=e.target.closest("button[dat
 function setup(){
  $("building").value="1775";
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
- $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("historySearch").addEventListener("input",renderHistory);
+ $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("prevFloor").addEventListener("click",function(){changeFloor(-1)});$("nextFloor").addEventListener("click",function(){changeFloor(1)});$("historySearch").addEventListener("input",renderHistory);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderHistory();renderInventory();renderStaff()}
@@ -139,6 +139,7 @@ function renderDashboard(){
   document.querySelectorAll("[data-bld]").forEach(function(el){el.onclick=function(){ $("building").value=el.dataset.bld;showScreen("requests");}});
  }
 }
+function changeFloor(delta){var sel=$("floorFilter"),v=sel.value==="all"?1:Number(sel.value),n=v+delta;if(n<1)n=1;if(n>26)n=26;sel.value=String(n);renderUnits()}
 function renderUnits(){
  var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
  var all=state.units.filter(function(u){return u.building===b;});
@@ -148,7 +149,9 @@ function renderUnits(){
  if($("totalUnits"))$("totalUnits").textContent=all.length;
  if($("occupancyRate"))$("occupancyRate").textContent=all.length?Math.round(occ/all.length*100)+"%":"0%";
  var a=all.filter(function(u){return (f==="all"||String(u.floor)===f)&&(u.no+" "+u.tenant).toLowerCase().indexOf(q)>=0});
- var groups={};a.forEach(function(u){(groups[u.floor]||(groups[u.floor]=[])).push(u)});
+ if(f==="all"&&!q){f="1";$("floorFilter").value="1";a=all.filter(function(u){return String(u.floor)==="1"});}
+$("floorTitle").textContent=f==="all"?"All Floors":"Floor "+f;
+var groups={};a.forEach(function(u){(groups[u.floor]||(groups[u.floor]=[])).push(u)});
  $("unitList").innerHTML=Object.keys(groups).sort(function(a,b){return Number(a)-Number(b)}).map(function(floor){
   return '<div class="card"><h3>Floor '+floor+'</h3>'+groups[floor].map(function(u){
    var isOcc=occupied(u);
