@@ -229,7 +229,7 @@ function saveUnit(){
 function populateForms(){
  var a=activeUnits();
  $("woUnit").innerHTML='<option value="">Select Unit</option>'+a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("");
- $("reqUnit").innerHTML='<option value="">Select Unit</option>'+a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("");
+ if($("reqUnit"))$("reqUnit").innerHTML='<option value="">Select Unit</option>'+a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("");
  $("woStaff").innerHTML='<option value="">Select Staff</option>'+state.staff.map(s=>'<option value="'+s.id+'">'+escapeHTML(s.name)+'</option>').join("");
 }
 function selectedOccupiedUnit(no){return state.units.find(u=>u.building===currentBuilding()&&u.no===no&&occupied(u))}
@@ -342,11 +342,20 @@ function addStaff(){
  var n=$("staffName").value.trim();
  if(!n)return alert("Enter the staff name.");
  var person={id:Date.now(),name:n};
- state.staff.push(person);
- if(!save())return;
- $("staffName").value="";
- renderAll();
- alert("Staff saved: "+n);
+ try{
+  state.staff.push(person);
+  if(!save()){state.staff.pop();return}
+  var verify=JSON.parse(localStorage.getItem(KEY)||"null");
+  if(!verify||!verify.staff||!verify.staff.some(function(s){return String(s.id)===String(person.id)})){
+   state.staff.pop();return alert("Staff could not be verified as saved. Please use More → Backup and try again after refreshing.");
+  }
+  $("staffName").value="";
+  renderAll();
+  alert("Staff saved successfully: "+n);
+ }catch(e){
+  state.staff.pop();
+  alert("Staff could not be saved. Your iPhone browser storage may be full. Please use More → Backup, then try again.");
+ }
 }
 function renderStaff(){$("staffList").innerHTML=state.staff.map(s=>'<div class="item"><b>'+escapeHTML(s.name)+'</b><span class="badge">Active</span></div>').join("")}
 function printSummary(){window.print()}
