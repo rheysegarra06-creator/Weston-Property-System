@@ -48,7 +48,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 <div class="card stat"><b id="doneCount">0</b>Completed</div><div class="card stat"><b id="lowCount">0</b>Low Stock</div>
 </div>
 <div class="card"><h3>Quick actions</h3><div class="actions"><button class="btn primary" onclick="showScreen('requests')">＋ New Request</button><button class="btn primary" onclick="showScreen('orders')">＋ New Work Order</button><button class="btn" onclick="showScreen('units')">🏠 Find a Unit</button><button class="btn" onclick="showScreen('more')">☰ More tools</button></div><p class="muted">Choose a building above. Your prototype data stays on this device.</p></div>
-<div class="card"><h3>Recent Activity</h3><div id="activity"></div></div>
+<div class="card"><h3>Recent Activity</h3><div id="activity"></div></div><div class="card"><h3>Requests by Building</h3><div id="buildingRequests"></div></div>
 </section>
 
 <section id="units" class="screen">
@@ -123,7 +123,22 @@ function setup(){
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderHistory();renderInventory();renderStaff()}
-function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(x=>'<div class="item"><small>'+escapeHTML(x)+'</small></div>').join("")||'<p class="muted">No activity yet.</p>'}
+function renderDashboard(){
+ var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});
+ $("openCount").textContent=o.filter(function(x){return x.status==="Open";}).length;
+ $("progressCount").textContent=o.filter(function(x){return x.status==="In Progress";}).length;
+ $("doneCount").textContent=o.filter(function(x){return x.status==="Completed";}).length;
+ $("lowCount").textContent=state.inventory.filter(function(x){return x.qty<=x.min;}).length;
+ $("activity").innerHTML=state.activity.map(function(x){return '<div class="item"><small>'+escapeHTML(x)+'</small></div>';}).join("")||'<p class="muted">No activity yet.</p>';
+ if($("buildingRequests")){
+  $("buildingRequests").innerHTML=["1765","1775"].map(function(bld){
+   var rs=state.requests.filter(function(r){return r.building===bld&&r.status==="Open";});
+   var em=rs.filter(function(r){return r.priority==="Emergency";}).length;
+   return '<div class="item" style="margin-bottom:8px;cursor:pointer" data-bld="'+bld+'"><b>Building '+bld+'</b><br><span>'+rs.length+' open request'+(rs.length===1?"":"s")+(em?' · 🔴 '+em+' emergency':"")+'</span></div>';
+  }).join("");
+  document.querySelectorAll("[data-bld]").forEach(function(el){el.onclick=function(){ $("building").value=el.dataset.bld;showScreen("requests");}});
+ }
+}
 function renderUnits(){
  var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
  var a=state.units.filter(function(u){return u.building===b&&(f==="all"||String(u.floor)===f)&&(u.no+" "+u.tenant).toLowerCase().indexOf(q)>=0});
