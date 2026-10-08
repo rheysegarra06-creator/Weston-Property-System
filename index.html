@@ -64,7 +64,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 
 <section id="orders" class="screen" aria-label="Work Orders">
 <div class="card"><h2>🛠 Work Order</h2><select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required"><div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div><textarea id="woNotes" placeholder="Notes"></textarea><label class="muted">Before photos — at least 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Select 3 or more photos before starting the work.</small><div id="beforePreview" class="photo-grid"></div><button class="primary" id="createWO">Create Work Order</button></div>
-<div class="card"><h3>Work Orders</h3><div id="orderList"></div></div>
+<div class="card"><h3>Work Orders</h3><p class="muted">After the work is done, a work order must have at least 3 AFTER photos before it can be completed.</p><div id="orderList"></div></div>
 </section>
 
 
