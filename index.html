@@ -15,7 +15,7 @@ input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-ra
 button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding:11px 15px;font-size:15px}button.secondary{border:0;border-radius:10px;padding:9px 12px;background:#e5e7eb}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.item{border-top:1px solid #eee;padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}.item:first-child{border-top:0}
 .badge{display:inline-block;background:#dcfce7;color:#166534;border-radius:12px;padding:5px 9px;font-size:11px;font-weight:700}.vacant{background:#dbeafe;color:#1d4ed8}.danger{background:#fee2e2;color:#991b1b}.notice{background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px;font-size:13px;margin:8px 0}
-.unit{cursor:pointer}.unit:active{background:#f9fafb}.details{border:2px solid #e5e7eb}.hidden{display:none!important}@media(max-width:430px){.row{grid-template-columns:1fr}}
+.unit{cursor:pointer}.unit:active{background:#f9fafb}.details{border:2px solid #e5e7eb}.hidden{display:none!important}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.photo-grid img{width:100%;aspect-ratio:1;border-radius:9px;object-fit:cover}.history{font-size:12px;color:#4b5563;line-height:1.5}@media(max-width:430px){.row{grid-template-columns:1fr}.photo-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:430px){.row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -53,7 +53,7 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 </section>
 
 <section id="orders" class="screen" aria-label="Work Orders">
-<div class="card"><h2>🛠 Work Order</h2><select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required"><div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div><textarea id="woNotes" placeholder="Notes"></textarea><button class="primary" id="createWO">Create Work Order</button></div>
+<div class="card"><h2>🛠 Work Order</h2><select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required"><div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div><textarea id="woNotes" placeholder="Notes"></textarea><label class="muted">Before photos — at least 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Select 3 or more photos before starting the work.</small><div id="beforePreview" class="photo-grid"></div><button class="primary" id="createWO">Create Work Order</button></div>
 <div class="card"><h3>Work Orders</h3><div id="orderList"></div></div>
 </section>
 
@@ -101,7 +101,7 @@ function setup(){
  $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
  $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
- $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);
+ $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff()}
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(x=>'<div class="item"><small>'+escapeHTML(x)+'</small></div>').join("")||'<p class="muted">No activity yet.</p>'}
@@ -133,7 +133,7 @@ function addUnitRequest(){
  var u=state.units.find(x=>x.id===selectedUnit);
  if(!u||!occupied(u))return alert("This unit is vacant. Maintenance requests are disabled.");
  var p=$("unitReqProblem").value.trim();if(!p)return alert("Enter the maintenance problem.");
- state.requests.unshift({id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("unitReqPriority").value,notes:$("unitReqNotes").value,status:"Open"});
+ state.requests.unshift({id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("unitReqPriority").value,notes:$("unitReqNotes").value,status:"Open",createdAt:new Date().toISOString()});
  log("New maintenance request for Unit "+u.no);
  $("unitReqProblem").value="";$("unitReqNotes").value="";
  renderAll();
@@ -157,24 +157,63 @@ function selectedOccupiedUnit(no){return state.units.find(u=>u.building===curren
 function addRequest(){
  var u=selectedOccupiedUnit($("reqUnit").value);if(!u)return alert("This unit is vacant. Maintenance requests are disabled.");
  var p=$("reqProblem").value.trim();if(!p)return alert("Enter the maintenance problem.");
- state.requests.unshift({id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("reqPriority").value,notes:$("reqNotes").value,status:"Open"});
+ state.requests.unshift({id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("reqPriority").value,notes:$("reqNotes").value,status:"Open",createdAt:new Date().toISOString()});
  log("New request for Unit "+u.no);$("reqProblem").value="";$("reqNotes").value="";renderAll();
 }
 function renderRequests(){
  var a=state.requests.filter(x=>x.building===currentBuilding());$("requestList").innerHTML=a.map(function(r){return '<div class="item"><div><b>REQ-'+String(r.id).slice(-5)+'</b> · Unit '+r.unit+'<br>'+escapeHTML(r.problem)+'<br><small>'+escapeHTML(r.tenant)+' · '+r.priority+'</small></div><button class="secondary" data-req="'+r.id+'">Create WO</button></div>'}).join("")||'<p class="muted">No requests yet.</p>';
  document.querySelectorAll("[data-req]").forEach(function(b){b.addEventListener("click",function(){var r=state.requests.find(x=>String(x.id)===b.dataset.req);if(r){showScreen("orders");$("woUnit").value=r.unit;$("woProblem").value=r.problem;$("woPriority").value=r.priority;$("woNotes").value=r.notes||""}})});
 }
+function readPhotos(files,done){
+ var a=Array.from(files||[]),out=[];
+ if(!a.length)return done([]);
+ var i=0;
+ function next(){if(i>=a.length)return done(out);var f=a[i++];var rd=new FileReader();rd.onload=function(){out.push(rd.result);next()};rd.readAsDataURL(f)}
+ next();
+}
+function previewBeforePhotos(){
+ var files=$("woBeforePhotos").files,box=$("beforePreview");box.innerHTML="";
+ Array.from(files).forEach(function(f){var rd=new FileReader();rd.onload=function(){var img=document.createElement("img");img.src=rd.result;box.appendChild(img)};rd.readAsDataURL(f)});
+}
+function previewAfterPhotos(id){
+ var input=$("afterPhotos-"+id),box=$("afterPreview-"+id);if(!input||!box)return;
+ box.innerHTML="";
+ Array.from(input.files).forEach(function(f){var rd=new FileReader();rd.onload=function(){var img=document.createElement("img");img.src=rd.result;box.appendChild(img)};rd.readAsDataURL(f)});
+}
 function addWorkOrder(){
  var u=selectedOccupiedUnit($("woUnit").value);if(!u)return alert("This unit is vacant. Work orders are disabled.");
  var p=$("woProblem").value.trim();if(!p)return alert("Enter the problem.");
+ var files=$("woBeforePhotos").files;if(files.length<3)return alert("Please select at least 3 BEFORE photos.");
  var s=state.staff.find(x=>String(x.id)===$("woStaff").value);
- state.orders.unshift({id:Date.now(),building:currentBuilding(),unit:u.no,problem:p,priority:$("woPriority").value,staff:s?s.name:"",notes:$("woNotes").value,status:"Open"});
- log("Created work order for Unit "+u.no);$("woProblem").value="";$("woNotes").value="";renderAll();
+ readPhotos(files,function(before){
+  var request=state.requests.find(r=>r.building===currentBuilding()&&r.unit===u.no&&r.status==="Open");
+  var now=new Date().toISOString();
+  var order={id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("woPriority").value,staff:s?s.name:"",notes:$("woNotes").value,status:"Open",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:"",completedAt:"",beforePhotos:before,afterPhotos:[],requestId:request?request.id:null};
+  state.orders.unshift(order);
+  if(request){request.status="Converted to Work Order";request.workOrderId=order.id}
+  log("Created work order for Unit "+u.no+" requested by "+u.tenant);
+  $("woProblem").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("beforePreview").innerHTML="";
+  save();renderAll();
+ });
 }
+
 function renderOrders(){
- var a=state.orders.filter(x=>x.building===currentBuilding());$("orderList").innerHTML=a.map(function(o){return '<div class="item"><div><b>WO-'+String(o.id).slice(-5)+'</b> · Unit '+o.unit+'<br>'+escapeHTML(o.problem)+'<br><small>'+o.priority+' · '+escapeHTML(o.staff)+' · '+o.status+'</small></div><button class="secondary" data-next="'+o.id+'">Next</button></div>'}).join("")||'<p class="muted">No work orders.</p>';
- document.querySelectorAll("[data-next]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.next);o.status=o.status==="Open"?"In Progress":o.status==="In Progress"?"Completed":"Open";log("WO for Unit "+o.unit+" → "+o.status);save();renderAll()})});
+ var a=state.orders.filter(x=>x.building===currentBuilding());
+ $("orderList").innerHTML=a.map(function(o){
+  var photosBefore=(o.beforePhotos||[]).map(function(p){return '<img src="'+p+'">'}).join("");
+  var photosAfter=(o.afterPhotos||[]).map(function(p){return '<img src="'+p+'">'}).join("");
+  var action="";
+  if(o.status==="Open"){
+   action='<button class="secondary" data-start="'+o.id+'">Start Work</button>';
+  }else if(o.status==="In Progress"){
+   action='<div style="width:100%"><label class="muted">After photos — at least 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photo-grid"></div><button class="primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
+  }
+  return '<div class="item" style="display:block"><div><b>WO-'+String(o.id).slice(-5)+'</b> · Unit '+o.unit+'<br><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br>'+escapeHTML(o.problem)+'<br><small>'+o.priority+' · '+escapeHTML(o.staff)+' · '+o.status+'</small><div class="history"><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</div></div><p><b>Before ('+(o.beforePhotos||[]).length+')</b></p><div class="photo-grid">'+photosBefore+'</div>'+(o.afterPhotos&&o.afterPhotos.length?'<p><b>After ('+o.afterPhotos.length+')</b></p><div class="photo-grid">'+photosAfter+'</div>':"")+'<div style="margin-top:10px">'+action+'</div></div>';
+ }).join("")||'<p class="muted">No work orders.</p>';
+ document.querySelectorAll("[data-start]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.start);if(!o)return;o.status="In Progress";o.startedAt=new Date().toISOString();log("Started WO for Unit "+o.unit);save();renderAll()})});
+ document.querySelectorAll("[data-complete]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.complete);var input=$("afterPhotos-"+o.id);if(!input||input.files.length<3)return alert("Please select at least 3 AFTER photos before completing.");readPhotos(input.files,function(after){o.afterPhotos=after;o.status="Completed";o.completedAt=new Date().toISOString();log("Completed WO for Unit "+o.unit);save();renderAll()})})});
 }
+
 function renderInventory(){
  $("inventoryList").innerHTML=state.inventory.map(function(x){return '<div class="item"><div><b>'+escapeHTML(x.name)+'</b><br><small>'+x.qty+' '+x.unit+' · Minimum '+x.min+'</small></div><div><button class="secondary" data-stock="'+x.id+'" data-delta="1">＋</button> <button class="secondary" data-stock="'+x.id+'" data-delta="-1">−</button></div></div>'}).join("");
  document.querySelectorAll("[data-stock]").forEach(function(b){b.addEventListener("click",function(){var x=state.inventory.find(i=>String(i.id)===b.dataset.stock);x.qty=Math.max(0,x.qty+Number(b.dataset.delta));log((Number(b.dataset.delta)>0?"Received ":"Used ")+x.name);save();renderAll()})});
