@@ -6,16 +6,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Building Monitor</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{background:#111827;color:white;padding:16px 12px;position:sticky;top:0;z-index:10}h1{margin:0;font-size:21px}header p{margin:3px 0 10px;color:#cbd5e1;font-size:12px}
-nav{display:flex;gap:6px;overflow-x:auto}nav button{border:0;background:#374151;color:white;border-radius:18px;padding:9px 12px;white-space:nowrap}nav button.active{background:white;color:#111827}
-main{max-width:760px;margin:auto;padding:12px}.screen{display:none}.screen.active{display:block}.card{background:white;border-radius:15px;padding:14px;margin-bottom:12px;box-shadow:0 1px 5px #0001}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat b{display:block;font-size:25px}.muted{color:#6b7280;font-size:13px}
-input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;margin:5px 0 10px}textarea{min-height:80px}
-button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding:11px 15px;font-size:15px}button.secondary{border:0;border-radius:10px;padding:9px 12px;background:#e5e7eb}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.item{border-top:1px solid #eee;padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}.item:first-child{border-top:0}
-.badge{display:inline-block;background:#dcfce7;color:#166534;border-radius:12px;padding:5px 9px;font-size:11px;font-weight:700}.vacant{background:#dbeafe;color:#1d4ed8}.danger{background:#fee2e2;color:#991b1b}.notice{background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px;font-size:13px;margin:8px 0}
-.unit{cursor:pointer}.unit:active{background:#f9fafb}.details{border:2px solid #e5e7eb}.hidden{display:none!important}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.photo-grid img{width:100%;aspect-ratio:1;border-radius:9px;object-fit:cover}.history{font-size:12px;color:#4b5563;line-height:1.5}@media(max-width:430px){.row{grid-template-columns:1fr}.photo-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:430px){.row{grid-template-columns:1fr}}
+:root{--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#64748b;--line:#e5e7eb;--blue:#2563eb;--green:#16a34a;--orange:#ea580c;--red:#dc2626;--nav:#0f172a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{max-width:900px;margin:auto;padding-bottom:90px}
+.top{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.98);color:#fff;padding:14px 16px;box-shadow:0 2px 12px #0003}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:20px;font-weight:850}.building{background:#fff;color:#111827;border-radius:12px;padding:10px 12px;font-weight:800}
+.main{padding:16px}.screen{display:none}.screen.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px;box-shadow:0 3px 14px #0f172a0b}
+.hero{background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border:0}.h1{font-size:25px;font-weight:850;margin:2px 0 5px}.muted{color:var(--muted)}.hero .muted{color:#dbeafe}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{padding:15px;border-radius:15px;background:#f8fafc;border:1px solid var(--line)}.stat b{display:block;font-size:25px;margin-bottom:3px}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.btn{min-height:48px;border-radius:12px;padding:11px 14px;font-weight:850;background:#eef2ff;color:#1d4ed8}.btn.primary{background:var(--blue);color:#fff}.btn.success{background:#dcfce7;color:#166534}.btn.warn{background:#ffedd5;color:#9a3412}.btn.danger{background:#fee2e2;color:#991b1b}.btn.dark{background:#e5e7eb;color:#111827}.btn.small{min-height:40px;padding:8px 11px;font-size:13px}
+.field{margin:11px 0}.field label{display:block;font-size:13px;font-weight:850;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;padding:12px;border:1px solid #d6dbe4;border-radius:11px;background:#fff}.field textarea{min-height:92px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{display:flex;justify-content:space-between;gap:10px;align-items:center}.badge{display:inline-block;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:850}.occupied{background:#dcfce7;color:#166534}.vacant{background:#dbeafe;color:#1d4ed8}.low{background:#fee2e2;color:#991b1b}.status{background:#eef2ff;color:#3730a3}
+.list{display:grid;gap:10px}.item{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px}.item.click{cursor:pointer}.item.click:active{transform:scale(.995)}.item h3{margin:0 0 5px;font-size:17px}.empty{text-align:center;padding:32px 16px;color:var(--muted)}
+.photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.photoGrid img{width:100%;aspect-ratio:1;border-radius:9px;object-fit:cover}.notice{padding:12px;border-radius:11px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.successbox{padding:12px;border-radius:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}.dangerbox{padding:12px;border-radius:11px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.hr{border-top:1px solid var(--line);margin:15px 0}.hidden{display:none!important}
+.bottom{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px #0000000b;display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.bottom .nav{max-width:900px;width:100%;display:grid;grid-template-columns:repeat(5,1fr)}.nav button{background:#fff;padding:9px 3px 8px;color:#64748b;font-size:11px;font-weight:850}.nav button.active{color:var(--blue)}.nav span{display:block;font-size:20px;margin-bottom:2px}
+.back{margin-bottom:12px}
+@media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.actions{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
