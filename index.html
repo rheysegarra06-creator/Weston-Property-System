@@ -76,11 +76,6 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 <div class="field"><label>Due Date</label><input id="woDueDate" type="date"></div>
 <div class="field"><label>Before Photos — minimum 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Document the condition before work starts.</small><div id="beforePreview" class="photoGrid"></div></div>
 <div class="field"><label>Work Done / Repair Completed</label><textarea id="woWorkDone" placeholder="Describe exactly what was repaired, replaced or completed"></textarea></div>
-<div class="grid">
-<div class="field"><label>Labour Hours</label><input id="woLabourHours" type="number" min="0" step="0.25" placeholder="0"></div>
-<div class="field"><label>Labour Cost ($)</label><input id="woLabourCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
-<div class="field"><label>Material Cost ($)</label><input id="woMaterialCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
-</div>
 <div class="field"><label>After Photos — minimum 3</label><input id="woAfterPhotos" type="file" accept="image/*" multiple><small class="muted">Document the completed repair.</small><div id="afterCreatePreview" class="photoGrid"></div></div>
 <div class="field"><label>Notes</label><textarea id="woNotes" placeholder="Additional instructions or notes"></textarea></div>
 <button class="btn primary" id="createWO">Create Work Order — DONE</button>
@@ -280,19 +275,15 @@ function addWorkOrder(){
  var files=$("woBeforePhotos").files;if(files.length<3)return alert("Please select at least 3 BEFORE photos.");
  var afterFiles=$("woAfterPhotos").files;if(afterFiles.length<3)return alert("Please select at least 3 AFTER photos.");
  var s=state.staff.find(x=>String(x.id)===$("woStaff").value);if(!s)return alert("Select Assigned Staff.");
- var labourHours=Number($("woLabourHours").value);var labourCost=Number($("woLabourCost").value);var materialCost=Number($("woMaterialCost").value);
- if(isNaN(labourHours)||labourHours<0)return alert("Enter Labour Hours.");
- if(isNaN(labourCost)||labourCost<0)return alert("Enter Labour Cost.");
- if(isNaN(materialCost)||materialCost<0)return alert("Enter Material Cost.");
  readPhotos(files,function(before){
   readPhotos(afterFiles,function(after){
    var request=state.requests.find(r=>r.building===currentBuilding()&&r.unit===u.no&&r.status==="Open");
    var now=new Date().toISOString();
-   var order={id:Date.now(),building:currentBuilding(),floor:u.floor,unit:u.no,tenant:u.tenant,category:$("woCategory").value,problem:p,priority:$("woPriority").value,staff:s.name,dueDate:$("woDueDate").value,notes:$("woNotes").value,status:"Completed",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:now,completedAt:now,beforePhotos:before,afterPhotos:after,workPerformed:workDone,labourHours:labourHours,labourCost:labourCost,materialCost:materialCost,totalCost:labourCost+materialCost,requestId:request?request.id:null};
+   var order={id:Date.now(),building:currentBuilding(),floor:u.floor,unit:u.no,tenant:u.tenant,category:$("woCategory").value,problem:p,priority:$("woPriority").value,staff:s.name,dueDate:$("woDueDate").value,notes:$("woNotes").value,status:"Completed",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:now,completedAt:now,beforePhotos:before,afterPhotos:after,workPerformed:workDone,requestId:request?request.id:null};
    state.orders.unshift(order);
    if(request){request.status="Completed";request.workOrderId=order.id}
    log("Completed work order for Unit "+u.no+" — "+u.tenant);
-   $("woProblem").value="";$("woWorkDone").value="";$("woDueDate").value="";$("woLabourHours").value="";$("woLabourCost").value="";$("woMaterialCost").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("woAfterPhotos").value="";$("beforePreview").innerHTML="";$("afterCreatePreview").innerHTML="";
+   $("woProblem").value="";$("woWorkDone").value="";$("woDueDate").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("woAfterPhotos").value="";$("beforePreview").innerHTML="";$("afterCreatePreview").innerHTML="";
 $("woCategory").selectedIndex=0;$("woPriority").selectedIndex=0;if($("woStaff").options.length)$("woStaff").selectedIndex=0;if($("woUnit").options.length)$("woUnit").selectedIndex=0;
    if(!save())return;
    var saved=JSON.parse(localStorage.getItem(KEY)||"null");
@@ -313,12 +304,12 @@ function renderOrders(){
   if(o.status==="Open"){
    action='<button class="secondary" data-start="'+o.id+'">Start Work</button>';
   }else if(o.status==="In Progress"){
-   action='<div style="width:100%"><div class="field"><label>Work Done / Repair Completed</label><textarea id="workPerformed-'+o.id+'" placeholder="Describe the repair completed"></textarea></div><div class="grid"><div class="field"><label>Labour Hours</label><input id="labourHours-'+o.id+'" type="number" min="0" step="0.25" placeholder="0"></div><div class="field"><label>Labour Cost ($)</label><input id="labourCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div><div class="field"><label>Material Cost ($)</label><input id="materialCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div></div><label class="muted">After photos — minimum 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photoGrid"></div><button class="btn primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
+   action='<div style="width:100%"><div class="field"><label>Work Done / Repair Completed</label><textarea id="workPerformed-'+o.id+'" placeholder="Describe the repair completed"></textarea></div><label class="muted">After photos — minimum 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photoGrid"></div><button class="btn primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
   }
   return '<div class="item" style="display:block"><div><b>WO-'+String(o.id).slice(-5)+'</b> · Building '+o.building+' · Floor '+(o.floor||"—")+' · Unit '+o.unit+'<br><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br><b>Category:</b> '+escapeHTML(o.category||"General Maintenance")+'<br>'+escapeHTML(o.problem)+'<br><small>'+o.priority+' · '+escapeHTML(o.staff)+' · '+o.status+(o.dueDate?' · Due '+o.dueDate:'')+'</small><div class="history"><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</div></div><p><b>Before ('+(o.beforePhotos||[]).length+')</b></p><div class="photo-grid">'+photosBefore+'</div>'+(o.afterPhotos&&o.afterPhotos.length?'<p><b>After ('+o.afterPhotos.length+')</b></p><div class="photo-grid">'+photosAfter+'</div>':"")+'<div style="margin-top:10px">'+action+'</div></div>';
  }).join("")||'<p class="muted">No work orders.</p>';
  document.querySelectorAll("[data-start]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.start);if(!o)return;o.status="In Progress";o.startedAt=new Date().toISOString();log("Started WO for Unit "+o.unit);save();renderAll()})});
- document.querySelectorAll("[data-complete]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.complete);var input=$("afterPhotos-"+o.id);if(!input||input.files.length<3)return alert("Please select at least 3 AFTER photos before completing.");readPhotos(input.files,function(after){o.afterPhotos=after;o.workPerformed=$("workPerformed-"+o.id).value.trim();o.labourHours=Number($("labourHours-"+o.id).value||0);o.labourCost=Number($("labourCost-"+o.id).value||0);o.materialCost=Number($("materialCost-"+o.id).value||0);o.totalCost=o.labourCost+o.materialCost;o.status="Completed";o.completedAt=new Date().toISOString();log("Completed WO for Unit "+o.unit);save();renderAll()})})});
+ document.querySelectorAll("[data-complete]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.complete);var input=$("afterPhotos-"+o.id);if(!input||input.files.length<3)return alert("Please select at least 3 AFTER photos before completing.");readPhotos(input.files,function(after){o.afterPhotos=after;o.workPerformed=$("workPerformed-"+o.id).value.trim();o.status="Completed";o.completedAt=new Date().toISOString();log("Completed WO for Unit "+o.unit);save();renderAll()})})});
 }
 
 function renderHistory(){
