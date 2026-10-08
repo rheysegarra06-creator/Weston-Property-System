@@ -24,7 +24,7 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <nav>
 <button class="active" onclick="show('dashboard',this)">Dashboard</button>
 <button onclick="show('units',this)">Units</button>
-<button onclick="show('orders',this)">Work Orders</button>
+<button onclick="show('requests',this)">Requests</button><button onclick="show('orders',this)">Work Orders</button>
 <button onclick="show('inventory',this)">Inventory</button>
 <button onclick="show('staff',this)">Staff</button>
 </nav>
@@ -46,6 +46,13 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <div class="card"><h2>🏠 Units</h2><p class="muted">260 units per building • 26 floors • 10 units per floor.</p>
 <input id="unitSearch" placeholder="Search unit or tenant..." oninput="renderUnits()"><div id="unitList"></div></div>
 </section>
+
+<section id="requests" class="screen">
+<div class="card"><h2>📋 Maintenance Requests</h2><p class="muted">Create a request, then turn it into a Work Order.</p>
+<select id="reqUnit"></select><input id="reqTenant" placeholder="Tenant name"><input id="reqProblem" placeholder="Maintenance problem">
+<select id="reqPriority"><option>Normal</option><option>High</option><option>Emergency</option></select>
+<textarea id="reqNotes" placeholder="Request notes"></textarea><button class="primary" onclick="addRequest()">Submit Request</button></div>
+<div class="card"><h3>Requests</h3><div id="reqList"></div></div></section>
 
 <section id="orders" class="screen">
 <div class="card"><h2>🛠 Create Work Order</h2>
@@ -72,16 +79,19 @@ const KEY='building-monitor-prototype-v1';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||{
 staff:[{id:1,name:'Maintenance Staff 1'},{id:2,name:'Maintenance Staff 2'}],
 inventory:[{id:1,name:'LED Bulb',qty:20,min:5,unit:'pcs'},{id:2,name:'Faucet Cartridge',qty:8,min:3,unit:'pcs'},{id:3,name:'Drywall Screw',qty:100,min:20,unit:'pcs'}],
-orders:[],activity:[],
+orders:[],requests:[],activity:[],
 units:[]
 };
 function units(){if(db.units.length)return;for(const b of ['1765','1775'])for(let f=1;f<=26;f++)for(let n=1;n<=10;n++)db.units.push({id:b+'-'+f+'0'+n,building:b,no:String(f*100+n),tenant:'',status:'Vacant'});save()}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function log(x){db.activity.unshift(new Date().toLocaleString()+' — '+x);db.activity=db.activity.slice(0,20);save()}
 function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');render()}
-function render(){units();const b=document.getElementById('building').value;const o=db.orders.filter(x=>x.building===b);open.textContent=o.filter(x=>x.status==='Open').length;progress.textContent=o.filter(x=>x.status==='In Progress').length;done.textContent=o.filter(x=>x.status==='Completed').length;low.textContent=db.inventory.filter(x=>x.qty<=x.min).length;activity.innerHTML=db.activity.map(x=>'<div class="item"><small>'+x+'</small></div>').join('')||'<p class="muted">No activity yet.</p>';renderUnits();renderWO();renderInv();renderStaff();populate()}
+function render(){units();const b=document.getElementById('building').value;const o=db.orders.filter(x=>x.building===b);open.textContent=o.filter(x=>x.status==='Open').length;progress.textContent=o.filter(x=>x.status==='In Progress').length;done.textContent=o.filter(x=>x.status==='Completed').length;low.textContent=db.inventory.filter(x=>x.qty<=x.min).length;reqList.innerHTML=renderRequests();activity.innerHTML=db.activity.map(x=>'<div class="item"><small>'+x+'</small></div>').join('')||'<p class="muted">No activity yet.</p>';renderUnits();renderWO();renderInv();renderStaff();populate()}
 function renderUnits(){const b=building.value,q=(unitSearch.value||'').toLowerCase();const a=db.units.filter(x=>x.building===b&&((x.no+' '+x.tenant).toLowerCase().includes(q))).slice(0,40);unitList.innerHTML=a.map(x=>'<div class="item"><div><b>Unit '+x.no+'</b><br><small>'+ (x.tenant||'No tenant')+'</small></div><span class="badge">'+x.status+'</span></div>').join('')+'<p class="muted">Showing up to 40 matching units.</p>'}
-function populate(){const b=building.value;woUnit.innerHTML=db.units.filter(x=>x.building===b).map(x=>'<option value="'+x.no+'">Unit '+x.no+'</option>').join('');woStaff.innerHTML=db.staff.map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('')}
+function populate(){const b=building.value;woUnit.innerHTML=db.units.filter(x=>x.building===b).map(x=>'<option value="'+x.no+'">Unit '+x.no+'</option>').join('');reqUnit.innerHTML=db.units.filter(x=>x.building===b).map(x=>'<option value="'+x.no+'">Unit '+x.no+'</option>').join('');woStaff.innerHTML=db.staff.map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('')}
+function addRequest(){const b=building.value,p=reqProblem.value.trim();if(!p)return alert('Enter the maintenance problem.');db.requests=db.requests||[];db.requests.unshift({id:Date.now(),building:b,unit:reqUnit.value,tenant:reqTenant.value.trim(),problem:p,priority:reqPriority.value,notes:reqNotes.value,status:'Open',created:new Date().toLocaleString()});log('New request for Unit '+reqUnit.value+': '+p);reqTenant.value='';reqProblem.value='';reqNotes.value='';save();render()}
+function renderRequests(){const b=building.value,a=(db.requests||[]).filter(x=>x.building===b);return a.map(x=>'<div class="item"><div><b>REQ-'+String(x.id).slice(-5)+'</b> · Unit '+x.unit+'<br>'+x.problem+'<br><small>'+x.tenant+' · '+x.priority+' · '+x.status+'</small></div><button class="secondary" onclick="requestToWO('+x.id+')">Create WO</button></div>').join('')||'<p class="muted">No requests yet.</p>'}
+function requestToWO(id){const r=(db.requests||[]).find(x=>x.id===id);if(!r)return;show('orders',document.querySelectorAll('nav button')[4]);woUnit.value=r.unit;woProblem.value=r.problem;woPriority.value=r.priority;woNotes.value=r.notes||'';log('Opened request REQ-'+String(r.id).slice(-5)+' for work order');}
 function addWO(){const b=building.value,p=woProblem.value.trim();if(!p)return alert('Enter the problem.');const s=db.staff.find(x=>String(x.id)===String(woStaff.value));db.orders.unshift({id:Date.now(),building:b,unit:woUnit.value,problem:p,priority:woPriority.value,staff:s?s.name:'',notes:woNotes.value,status:'Open',created:new Date().toLocaleString()});log('Created WO for Unit '+woUnit.value+': '+p);woProblem.value='';woNotes.value='';save();render()}
 function renderWO(){const b=building.value,a=db.orders.filter(x=>x.building===b);woList.innerHTML=a.map(x=>'<div class="item"><div><b>WO-'+String(x.id).slice(-5)+'</b> · Unit '+x.unit+'<br>'+x.problem+'<br><small>'+x.priority+' · '+x.staff+' · '+x.status+'</small></div><button class="secondary" onclick="nextWO('+x.id+')">Next</button></div>').join('')||'<p class="muted">No work orders.</p>'}
 function nextWO(id){const x=db.orders.find(x=>x.id===id);x.status=x.status==='Open'?'In Progress':x.status==='In Progress'?'Completed':'Open';log('WO for Unit '+x.unit+' → '+x.status);save();render()}
