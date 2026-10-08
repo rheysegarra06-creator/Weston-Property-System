@@ -338,7 +338,16 @@ function renderInventory(){
  $("inventoryList").innerHTML=state.inventory.map(function(x){return '<div class="item"><div><b>'+escapeHTML(x.name)+'</b><br><small>'+x.qty+' '+x.unit+' · Minimum '+x.min+'</small></div><div><button class="secondary" data-stock="'+x.id+'" data-delta="1">＋</button> <button class="secondary" data-stock="'+x.id+'" data-delta="-1">−</button></div></div>'}).join("");
  document.querySelectorAll("[data-stock]").forEach(function(b){b.addEventListener("click",function(){var x=state.inventory.find(i=>String(i.id)===b.dataset.stock);x.qty=Math.max(0,x.qty+Number(b.dataset.delta));log((Number(b.dataset.delta)>0?"Received ":"Used ")+x.name);save();renderAll()})});
 }
-function addStaff(){var n=$("staffName").value.trim();if(!n)return;state.staff.push({id:Date.now(),name:n});$("staffName").value="";log("Added staff: "+n);save();renderAll()}
+function addStaff(){
+ var n=$("staffName").value.trim();
+ if(!n)return alert("Enter the staff name.");
+ var person={id:Date.now(),name:n};
+ state.staff.push(person);
+ if(!save())return;
+ $("staffName").value="";
+ renderAll();
+ alert("Staff saved: "+n);
+}
 function renderStaff(){$("staffList").innerHTML=state.staff.map(s=>'<div class="item"><b>'+escapeHTML(s.name)+'</b><span class="badge">Active</span></div>').join("")}
 function printSummary(){window.print()}
 function backupData(){var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="building-monitor-backup.json";a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
