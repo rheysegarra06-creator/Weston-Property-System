@@ -219,9 +219,9 @@ function saveUnit(){
 }
 function populateForms(){
  var a=activeUnits();
- $("woUnit").innerHTML=a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("")||'<option value="">No occupied units</option>';
- $("reqUnit").innerHTML=a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("")||'<option value="">No occupied units</option>';
- $("woStaff").innerHTML=state.staff.map(s=>'<option value="'+s.id+'">'+escapeHTML(s.name)+'</option>').join("");
+ $("woUnit").innerHTML='<option value="">Select Unit</option>'+a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("");
+ $("reqUnit").innerHTML='<option value="">Select Unit</option>'+a.map(u=>'<option value="'+u.no+'">Unit '+u.no+'</option>').join("");
+ $("woStaff").innerHTML='<option value="">Select Staff</option>'+state.staff.map(s=>'<option value="'+s.id+'">'+escapeHTML(s.name)+'</option>').join("");
 }
 function selectedOccupiedUnit(no){return state.units.find(u=>u.building===currentBuilding()&&u.no===no&&occupied(u))}
 function addRequest(){
@@ -284,7 +284,7 @@ function addWorkOrder(){
    if(request){request.status="Completed";request.workOrderId=order.id}
    log("Completed work order for Unit "+u.no+" — "+u.tenant);
    $("woProblem").value="";$("woWorkDone").value="";$("woDueDate").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("woAfterPhotos").value="";$("beforePreview").innerHTML="";$("afterCreatePreview").innerHTML="";
-$("woCategory").selectedIndex=0;$("woPriority").selectedIndex=0;if($("woStaff").options.length)$("woStaff").selectedIndex=0;if($("woUnit").options.length)$("woUnit").selectedIndex=0;
+$("woCategory").selectedIndex=0;$("woPriority").selectedIndex=0;$("woStaff").value="";$("woUnit").value="";
    if(!save())return;
    var saved=JSON.parse(localStorage.getItem(KEY)||"null");
    var confirmed=saved&&saved.orders&&saved.orders.some(function(x){return String(x.id)===String(order.id)&&x.status==="Completed"});
