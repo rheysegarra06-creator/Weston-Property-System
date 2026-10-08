@@ -72,7 +72,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 <div class="field"><label>Priority</label><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select></div>
 <div class="field"><label>Assigned Staff</label><select id="woStaff"></select></div>
 </div>
-<div class="field"><label>Problem / Description</label><textarea id="woProblem" placeholder="Describe the tenant's problem or required repair"></textarea></div>
+<div class="field"><label>Problem / Repair Requested</label><textarea id="woProblem" placeholder="Describe the tenant's problem or required repair"></textarea></div>
 <div class="field"><label>Due Date</label><input id="woDueDate" type="date"></div>
 <div class="field"><label>Before Photos — minimum 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Document the condition before work starts.</small><div id="beforePreview" class="photoGrid"></div></div>
 <div class="field"><label>Notes</label><textarea id="woNotes" placeholder="Additional instructions or notes"></textarea></div>
@@ -176,6 +176,13 @@ var groups={};a.forEach(function(u){(groups[u.floor]||(groups[u.floor]=[])).push
  $("unitDetails").innerHTML=selectedUnit?unitEditor(selectedUnit):"";
 }
 function openUnit(id){selectedUnit=id;renderUnits();setTimeout(function(){$("unitDetails").scrollIntoView({behavior:"smooth",block:"start"})},50)}
+function tenantWorkHistory(u){
+ var a=state.orders.filter(function(o){return o.building===u.building&&o.unit===u.no;});
+ if(!a.length)return '<div class="card"><h3>📜 Tenant Work Order History</h3><p class="muted">No work orders for this tenant/unit yet.</p></div>';
+ return '<div class="card"><h3>📜 Tenant Work Order History</h3>'+a.map(function(o){
+   return '<div class="item" style="margin-bottom:8px"><b>WO-'+String(o.id).slice(-5)+'</b> · '+escapeHTML(o.status)+'<br><b>Problem / Repair Requested:</b> '+escapeHTML(o.problem)+'<br><b>Work Done / Repair Completed:</b> '+escapeHTML(o.workPerformed||"Not completed yet")+'<br><small>'+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'</small></div>';
+ }).join("")+'</div>';
+}
 function unitEditor(id){
  var u=state.units.find(x=>x.id===id),o=occupied(u);if(!u)return "";
  var requestForm=o?
@@ -251,7 +258,7 @@ function addWorkOrder(){
   if(request){request.status="Converted to Work Order";request.workOrderId=order.id}
   log("Created work order for Unit "+u.no+" requested by "+u.tenant);
   $("woProblem").value="";$("woNotes").value="";$("woDueDate").value="";$("woBeforePhotos").value="";$("beforePreview").innerHTML="";
-  save();renderAll();
+  save();renderAll();showScreen("orders");setTimeout(function(){alert("Work order saved successfully for Unit "+u.no+". It is now in Active & Recent Work Orders.")},50);
  });
 }
 
@@ -264,7 +271,7 @@ function renderOrders(){
   if(o.status==="Open"){
    action='<button class="secondary" data-start="'+o.id+'">Start Work</button>';
   }else if(o.status==="In Progress"){
-   action='<div style="width:100%"><div class="field"><label>Work Performed</label><textarea id="workPerformed-'+o.id+'" placeholder="Describe the repair completed"></textarea></div><div class="grid"><div class="field"><label>Labour Hours</label><input id="labourHours-'+o.id+'" type="number" min="0" step="0.25" placeholder="0"></div><div class="field"><label>Labour Cost ($)</label><input id="labourCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div><div class="field"><label>Material Cost ($)</label><input id="materialCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div></div><label class="muted">After photos — minimum 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photoGrid"></div><button class="btn primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
+   action='<div style="width:100%"><div class="field"><label>Work Done / Repair Completed</label><textarea id="workPerformed-'+o.id+'" placeholder="Describe the repair completed"></textarea></div><div class="grid"><div class="field"><label>Labour Hours</label><input id="labourHours-'+o.id+'" type="number" min="0" step="0.25" placeholder="0"></div><div class="field"><label>Labour Cost ($)</label><input id="labourCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div><div class="field"><label>Material Cost ($)</label><input id="materialCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div></div><label class="muted">After photos — minimum 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photoGrid"></div><button class="btn primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
   }
   return '<div class="item" style="display:block"><div><b>WO-'+String(o.id).slice(-5)+'</b> · Building '+o.building+' · Floor '+(o.floor||"—")+' · Unit '+o.unit+'<br><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br><b>Category:</b> '+escapeHTML(o.category||"General Maintenance")+'<br>'+escapeHTML(o.problem)+'<br><small>'+o.priority+' · '+escapeHTML(o.staff)+' · '+o.status+(o.dueDate?' · Due '+o.dueDate:'')+'</small><div class="history"><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</div></div><p><b>Before ('+(o.beforePhotos||[]).length+')</b></p><div class="photo-grid">'+photosBefore+'</div>'+(o.afterPhotos&&o.afterPhotos.length?'<p><b>After ('+o.afterPhotos.length+')</b></p><div class="photo-grid">'+photosAfter+'</div>':"")+'<div style="margin-top:10px">'+action+'</div></div>';
  }).join("")||'<p class="muted">No work orders.</p>';
@@ -282,7 +289,7 @@ function renderHistory(){
  });
  $("historyList").innerHTML=a.map(function(o){
    var before=o.beforePhotos||[],after=o.afterPhotos||[];
-   return '<div class="card"><h3>WO-'+String(o.id).slice(-5)+' · Unit '+o.unit+'</h3><p><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br><b>Problem:</b> '+escapeHTML(o.problem)+'<br><b>Priority:</b> '+escapeHTML(o.priority)+'<br><b>Staff:</b> '+escapeHTML(o.staff)+'<br><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</p><p><b>Before Photos ('+before.length+')</b></p><div class="photo-grid">'+before.map(function(p){return '<img src="'+p+'">'}).join("")+'</div><p><b>After Photos ('+after.length+')</b></p><div class="photo-grid">'+after.map(function(p){return '<img src="'+p+'">'}).join("")+'</div><p><b>Notes:</b> '+escapeHTML(o.notes||"—")+'</p></div>';
+   return '<div class="card"><h3>WO-'+String(o.id).slice(-5)+' · Unit '+o.unit+'</h3><p><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br><b>Problem / Repair Requested:</b> '+escapeHTML(o.problem)+'<br><b>Work Done / Repair Completed:</b> '+escapeHTML(o.workPerformed||"—")+'<br><b>Priority:</b> '+escapeHTML(o.priority)+'<br><b>Staff:</b> '+escapeHTML(o.staff)+'<br><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</p><p><b>Before Photos ('+before.length+')</b></p><div class="photo-grid">'+before.map(function(p){return '<img src="'+p+'">'}).join("")+'</div><p><b>After Photos ('+after.length+')</b></p><div class="photo-grid">'+after.map(function(p){return '<img src="'+p+'">'}).join("")+'</div><p><b>Notes:</b> '+escapeHTML(o.notes||"—")+'</p></div>';
  }).join("")||'<p class="muted">No completed work order history yet.</p>';
 }
 function renderInventory(){
