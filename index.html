@@ -27,26 +27,16 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{ma
 </style>
 </head>
 <body>
-<header>
-<h1>🏢 Building Monitor</h1><p>Prototype • Buildings 1765 & 1775</p>
-<nav id="nav">
-<button type="button" data-screen="dashboard" class="active">Dashboard</button>
-<button type="button" data-screen="units">Units</button>
-<button type="button" data-screen="requests">Requests</button>
-<button type="button" data-screen="orders">Work Orders</button>
-<button type="button" data-screen="history">History</button>
-<button type="button" data-screen="inventory">Inventory</button>
-<button type="button" data-screen="staff">Staff</button>
-</nav>
-</header>
+<header class="top"><div class="toprow"><div><div class="brand">🏢 Building Monitor</div><div style="color:#cbd5e1;font-size:12px">Maintenance & property operations</div></div><select id="building" class="building"><option value="1775">1775</option><option value="1765">1765</option></select></div></header>
+<nav id="nav" class="bottom"><div class="nav"><button type="button" data-screen="dashboard" class="active"><span>⌂</span>Home</button><button type="button" data-screen="units"><span>▦</span>Units</button><button type="button" data-screen="requests"><span>🛠</span>Requests</button><button type="button" data-screen="orders"><span>📋</span>Work Orders</button><button type="button" data-screen="more"><span>☰</span>More</button></div></nav>
 <main>
 <section id="dashboard" class="screen active">
-<div class="card"><label>Building</label><select id="building"></select></div>
+
 <div class="grid">
 <div class="card stat"><b id="openCount">0</b>Open Work Orders</div><div class="card stat"><b id="progressCount">0</b>In Progress</div>
 <div class="card stat"><b id="doneCount">0</b>Completed</div><div class="card stat"><b id="lowCount">0</b>Low Stock</div>
 </div>
-<div class="card"><h3>System status</h3><p class="muted">Prototype rebuilt from scratch. Data is stored on this device.</p></div>
+<div class="card"><h3>Quick actions</h3><div class="actions"><button class="btn primary" onclick="showScreen('requests')">＋ New Request</button><button class="btn primary" onclick="showScreen('orders')">＋ New Work Order</button><button class="btn" onclick="showScreen('units')">🏠 Find a Unit</button><button class="btn" onclick="showScreen('more')">☰ More tools</button></div><p class="muted">Choose a building above. Your prototype data stays on this device.</p></div>
 <div class="card"><h3>Recent Activity</h3><div id="activity"></div></div>
 </section>
 
@@ -83,11 +73,11 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{ma
 <div class="card"><h2>👷 Staff</h2><input id="staffName" placeholder="Staff name"><button class="primary" id="addStaff">Add Staff</button></div>
 <div class="card"><div id="staffList"></div></div>
 </section>
-</main>
+<section id="more" class="screen"><div class="card"><h2>☰ More tools</h2><p class="muted">Less-used tools are kept here so the main navigation stays simple.</p><div class="actions"><button class="btn" onclick="showScreen('history')">📜 History</button><button class="btn" onclick="showScreen('inventory')">📦 Inventory</button><button class="btn" onclick="showScreen('staff')">👷 Staff</button><button class="btn" onclick="printSummary()">🖨 Print</button><button class="btn" onclick="backupData()">💾 Backup</button><button class="btn" onclick="restoreData()">♻ Restore</button></div></div><div class="card"><h3>Simple workflow</h3><p>1. Find a unit and confirm the tenant.</p><p>2. Create a maintenance request for an occupied unit.</p><p>3. Create a work order and assign staff.</p><p>4. Add at least 3 BEFORE photos, then 3 AFTER photos to complete.</p><p>5. Completed jobs remain in History.</p></div></section></main>
 <script>
 (function(){
 "use strict";
-var KEY="building-monitor-prototype-v3";
+var KEY="building-monitor-friendly-v2";
 var state;
 try{state=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){state=null}
 if(!state){
@@ -100,7 +90,7 @@ function $(id){return document.getElementById(id)}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function log(msg){state.activity.unshift(new Date().toLocaleString()+" — "+msg);state.activity=state.activity.slice(0,20);save()}
 function occupied(u){
- if(u.moveOut){var d=new Date(u.moveOut+"T23:59:59");if(!isNaN(d)&&d<=new Date()){u.tenant="";u.phone="";u.moveIn="";u.moveOut="";u.notes="";save();return false}}
+ if(u.moveOut){var d=new Date(u.moveOut+"T23:59:59");if(!isNaN(d)&&d<=new Date())return false}
  return !!(u.tenant&&u.tenant.trim());
 }
 function currentBuilding(){return $("building").value}
@@ -116,7 +106,7 @@ function showScreen(id){
 }
 $("nav").addEventListener("click",function(e){var b=e.target.closest("button[data-screen]");if(!b)return;e.preventDefault();showScreen(b.dataset.screen);});
 function setup(){
- $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';
+ $("building").value="1775";
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
  $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("historySearch").addEventListener("input",renderHistory);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
@@ -251,6 +241,9 @@ function renderInventory(){
 }
 function addStaff(){var n=$("staffName").value.trim();if(!n)return;state.staff.push({id:Date.now(),name:n});$("staffName").value="";log("Added staff: "+n);save();renderAll()}
 function renderStaff(){$("staffList").innerHTML=state.staff.map(s=>'<div class="item"><b>'+escapeHTML(s.name)+'</b><span class="badge">Active</span></div>').join("")}
+function printSummary(){window.print()}
+function backupData(){var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="building-monitor-backup.json";a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function restoreData(){var i=document.createElement("input");i.type="file";i.accept=".json,application/json";i.onchange=function(){var f=i.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!x.units||!x.requests||!x.orders||!x.inventory)throw Error();state=x;save();alert("Backup restored.");renderAll()}catch(e){alert("That backup file is not valid.")}};r.readAsText(f)};i.click()}
 setup();renderAll();
 })();
 </script>
