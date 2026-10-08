@@ -24,11 +24,22 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{ma
 .bottom .nav{max-width:900px;width:100%;display:grid;grid-template-columns:repeat(5,1fr)}.nav button{background:#fff;padding:9px 3px 8px;color:#64748b;font-size:11px;font-weight:850}.nav button.active{color:var(--blue)}.nav span{display:block;font-size:20px;margin-bottom:2px}
 .back{margin-bottom:12px}
 @media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.actions{grid-template-columns:repeat(4,1fr)}}
-</style>
+header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-size:24px}header p{margin:0 0 12px;color:#cbd5e1}#nav{display:flex;gap:7px;flex-wrap:wrap}#nav button{background:#334155;color:#fff;border-radius:9px;padding:9px 12px;font-weight:800}#nav button.active{background:#2563eb}.app{padding-bottom:30px}</style>
 </head>
 <body>
-<header class="top"><div class="toprow"><div><div class="brand">🏢 Building Monitor</div><div style="color:#cbd5e1;font-size:12px">Maintenance & property operations</div></div><select id="building" class="building"><option value="1775">1775</option><option value="1765">1765</option></select></div></header>
-<nav id="nav" class="bottom"><div class="nav"><button type="button" data-screen="dashboard" class="active"><span>⌂</span>Home</button><button type="button" data-screen="units"><span>▦</span>Units</button><button type="button" data-screen="requests"><span>🛠</span>Requests</button><button type="button" data-screen="orders"><span>📋</span>Work Orders</button><button type="button" data-screen="more"><span>☰</span>More</button></div></nav>
+<header>
+<h1>🏢 Building Monitor</h1><p>Prototype • Buildings 1765 & 1775</p>
+<nav id="nav">
+<button type="button" data-screen="dashboard" class="active">Dashboard</button>
+<button type="button" data-screen="units">Units</button>
+<button type="button" data-screen="requests">Requests</button>
+<button type="button" data-screen="orders">Work Orders</button>
+<button type="button" data-screen="history">History</button>
+<button type="button" data-screen="inventory">Inventory</button>
+<button type="button" data-screen="staff">Staff</button>
+<button type="button" data-screen="more">More</button>
+</nav>
+</header>
 <main>
 <section id="dashboard" class="screen active">
 
