@@ -22,13 +22,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{ma
 .photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.photoGrid img{width:100%;aspect-ratio:1;border-radius:9px;object-fit:cover}.notice{padding:12px;border-radius:11px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.successbox{padding:12px;border-radius:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}.dangerbox{padding:12px;border-radius:11px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.hr{border-top:1px solid var(--line);margin:15px 0}.hidden{display:none!important}
 .bottom{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px #0000000b;display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
 .bottom .nav{max-width:900px;width:100%;display:grid;grid-template-columns:repeat(5,1fr)}.nav button{background:#fff;padding:9px 3px 8px;color:#64748b;font-size:11px;font-weight:850}.nav button.active{color:var(--blue)}.nav span{display:block;font-size:20px;margin-bottom:2px}
-.floorNav{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:12px 0}.floorNav .btn:last-child{text-align:right}.floorCurrent{text-align:center;min-width:110px}.floorCurrent b{display:block;font-size:18px}.floorCurrent small{display:block;color:var(--muted);font-size:11px}.back{margin-bottom:12px}
+.unitsCard{padding:22px}.unitsCard h2{font-size:28px;margin-top:4px}.floorNav{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:12px 0}.floorNav .btn:last-child{text-align:right}.floorCurrent{text-align:center;min-width:110px}.floorCurrent b{display:block;font-size:18px}.floorCurrent small{display:block;color:var(--muted);font-size:11px}.back{margin-bottom:12px}
 @media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.actions{grid-template-columns:repeat(4,1fr)}}
-header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-size:24px}header p{margin:0 0 12px;color:#cbd5e1}#nav{display:flex;gap:7px;flex-wrap:wrap}#nav button{background:#334155;color:#fff;border-radius:9px;padding:9px 12px;font-weight:800}#nav button.active{background:#2563eb}.app{padding-bottom:30px}</style>
+header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-size:24px}header p{margin:0 0 12px;color:#cbd5e1}#nav{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}#nav::-webkit-scrollbar{display:none}#nav button{background:#334155;color:#fff;border-radius:999px;padding:12px 18px;font-weight:800;white-space:nowrap;font-size:15px}.currentBuilding{display:flex;align-items:center;gap:12px;margin:14px 0}.currentBuilding label{font-weight:850;font-size:16px}.currentBuilding select{background:#fff;color:#111827;border:0;border-radius:14px;padding:12px 42px 12px 16px;font-weight:850;font-size:18px;min-width:170px}#nav button.active{background:#2563eb}.app{padding-bottom:30px}</style>
 </head>
 <body>
 <header>
-<h1>🏢 Building Monitor</h1><p>Prototype • Buildings 1765 & 1775</p>
+<h1>🏢 Building Superintendent<br>1775 & 1765</h1><p>Inventory • Units • Maintenance • Work Orders • Suppliers</p><div class="currentBuilding"><label>Current Building</label><select id="building"><option value="1765">1765</option><option value="1775">1775</option></select></div>
 <nav id="nav">
 <button type="button" data-screen="dashboard" class="active">Dashboard</button>
 <button type="button" data-screen="units">Units</button>
@@ -52,8 +52,8 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 </section>
 
 <section id="units" class="screen">
-<div class="card"><h2>🏠 Units & Occupancy</h2><p class="muted">Select the building, then move floor-by-floor. Each building has 26 floors × 10 units.</p><div class="field"><label>Building</label><select id="unitsBuilding"><option value="1775">Building 1775</option><option value="1765">Building 1765</option></select></div><div class="grid"><div class="stat"><b id="occupiedUnits">0</b>Occupied</div><div class="stat"><b id="vacantUnits">0</b>Vacant</div><div class="stat"><b id="totalUnits">260</b>Total Units</div><div class="stat"><b id="occupancyRate">0%</b>Occupancy</div></div><div class="hr"></div>
-<div class="floorNav"><button type="button" class="btn small" id="prevFloor">▼ Previous Floor</button><div class="floorCurrent"><b id="floorTitle">All Floors</b><small>One floor at a time</small></div><button type="button" class="btn small" id="nextFloor">▲ Next Floor</button></div><div class="row"><div class="hidden"><label class="muted">Floor</label><select id="floorFilter"></select></div><div style="width:100%"><label class="muted">Search</label><input id="unitSearch" placeholder="Unit or tenant"></div></div>
+<div class="card unitsCard"><h2>🏠 Units</h2><p class="muted">Building and floor selection. Each building has 26 floors × 10 units = 260 units.</p><div class="field"><label>Floor</label><select id="unitsBuilding"><option value="1765">Building 1765</option><option value="1775">Building 1775</option></select></div><div class="grid"><div class="stat"><b id="occupiedUnits">0</b>Occupied</div><div class="stat"><b id="vacantUnits">0</b>Vacant</div><div class="stat"><b id="totalUnits">260</b>Total Units</div><div class="stat"><b id="occupancyRate">0%</b>Occupancy</div></div><div class="hr"></div>
+<div class="floorNav"><button type="button" class="btn small" id="prevFloor">▼ Previous Floor</button><div class="floorCurrent"><b id="floorTitle">Floor 1</b><small>10 units</small></div><button type="button" class="btn small" id="nextFloor">▲ Next Floor</button></div><div class="row"><div style="width:100%"><label class="muted">Floor</label><select id="floorFilter"></select></div><div style="width:100%"><label class="muted">Search</label><input id="unitSearch" placeholder="🔎 Search unit, room, tenant..."></div></div>
 <div id="unitList"></div><div id="unitDetails"></div>
 </div></section>
 
@@ -104,7 +104,7 @@ function occupied(u){
  if(u.moveOut){var d=new Date(u.moveOut+"T23:59:59");if(!isNaN(d)&&d<=new Date())return false}
  return !!(u.tenant&&u.tenant.trim());
 }
-function currentBuilding(){return $("building").value}
+function currentBuilding(){return $("building").value||($("unitsBuilding")&&$("unitsBuilding").value)||"1765"}
 function activeUnits(){return state.units.filter(function(u){return u.building===currentBuilding()&&occupied(u)})}
 function escapeHTML(s){return String(s||"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function showScreen(id){
@@ -117,9 +117,9 @@ function showScreen(id){
 }
 $("nav").addEventListener("click",function(e){var b=e.target.closest("button[data-screen]");if(!b)return;e.preventDefault();showScreen(b.dataset.screen);});
 function setup(){
- $("building").value="1775";
+ $("building").value="1765";$("unitsBuilding").value="1765";
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
- $("building").addEventListener("change",renderAll);$("unitsBuilding").addEventListener("change",function(){$("building").value=$("unitsBuilding").value;selectedUnit=null;renderAll()});$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("prevFloor").addEventListener("click",function(){changeFloor(-1)});$("nextFloor").addEventListener("click",function(){changeFloor(1)});$("historySearch").addEventListener("input",renderHistory);
+ $("building").addEventListener("change",function(){$("unitsBuilding").value=$("building").value;selectedUnit=null;renderAll()});$("unitsBuilding").addEventListener("change",function(){$("building").value=$("unitsBuilding").value;selectedUnit=null;renderAll()});$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("prevFloor").addEventListener("click",function(){changeFloor(-1)});$("nextFloor").addEventListener("click",function(){changeFloor(1)});$("historySearch").addEventListener("input",renderHistory);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderHistory();renderInventory();renderStaff()}
@@ -141,8 +141,8 @@ function renderDashboard(){
 }
 function changeFloor(delta){var sel=$("floorFilter"),v=sel.value==="all"?1:Number(sel.value),n=v+delta;if(n<1)n=1;if(n>26)n=26;sel.value=String(n);renderUnits()}
 function renderUnits(){
- var b=$("unitsBuilding")?$("unitsBuilding").value:currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
- if($("unitsBuilding"))$("unitsBuilding").value=b;
+ var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
+ if($("unitsBuilding"))$("unitsBuilding").value=b;$("building").value=b;
  var all=state.units.filter(function(u){return u.building===b;});
  var occ=all.filter(function(u){return occupied(u)}).length;
  if($("occupiedUnits"))$("occupiedUnits").textContent=occ;
