@@ -48,7 +48,10 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 
 <section id="units" class="screen">
 <div class="card"><h2>🏠 Units</h2><div class="notice"><b>🏢 Building <span id="unitsBuildingLabel">1775</span></b> — Showing units for this building.</div><p class="muted">26 floors × 10 units = 260 units per building.</p>
-<div class="row"><div><label class="muted">Floor</label><select id="floorFilter"></select></div><div><label class="muted">Search</label><input id="unitSearch" placeholder="Unit or tenant"></div></div>
+<div class="row">
+<div><label class="muted">Building</label><select id="unitsBuildingFilter"><option value="1775">1775</option><option value="1765">1765</option></select></div>
+<div><label class="muted">Floor</label><select id="floorFilter"></select></div>
+</div>
 <div id="unitList"></div><div id="unitDetails"></div>
 </div></section>
 
@@ -164,7 +167,10 @@ document.querySelectorAll("#nav button").forEach(function(b){b.addEventListener(
 function setup(){
  $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';$("historyBuilding").value=currentBuilding();
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
- $("building").addEventListener("change",function(){$("historyBuilding").value=currentBuilding();populateHistoryUnits();renderAll()});$("historyBuilding").addEventListener("change",function(){populateHistoryUnits();renderHistory()});$("historyUnit").addEventListener("change",renderHistory);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
+ $("unitsBuildingFilter").value=currentBuilding();
+ $("unitsBuildingFilter").addEventListener("change",function(){$("building").value=$("unitsBuildingFilter").value;renderAll()});
+ $("floorFilter").addEventListener("change",renderUnits);
+ $("building").addEventListener("change",function(){$("unitsBuildingFilter").value=currentBuilding();$("historyBuilding").value=currentBuilding();populateHistoryUnits();renderAll()});$("historyBuilding").addEventListener("change",function(){populateHistoryUnits();renderHistory()});$("historyUnit").addEventListener("change",renderHistory);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);
  $("exportData").addEventListener("click",exportData);
  $("importDataBtn").addEventListener("click",function(){$("importData").click()});
@@ -211,8 +217,9 @@ function renderHistory(){
 }
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(function(x){var s=typeof x==="string"?x:(x&&x.text?x.text:"");return '<div class="item"><small>'+escapeHTML(s)+'</small></div>'}).join("")||'<p class="muted">No activity yet.</p>'}
 function renderUnits(){
- var b=currentBuilding();$("unitsBuildingLabel").textContent=b;
- var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
+ var b=$("unitsBuildingFilter").value||currentBuilding();$("unitsBuildingLabel").textContent=b;
+ $("building").value=b;
+ var q="",f=$("floorFilter").value;
  var a=state.units.filter(function(u){return u.building===b&&(f==="all"||String(u.floor)===f)&&(u.no+" "+u.tenant).toLowerCase().indexOf(q)>=0});
  var groups={};a.forEach(function(u){(groups[u.floor]||(groups[u.floor]=[])).push(u)});
  $("unitList").innerHTML=Object.keys(groups).sort((a,b)=>Number(a)-Number(b)).map(function(floor){
