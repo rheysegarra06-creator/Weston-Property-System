@@ -236,7 +236,7 @@ function addRequest(){
  log("New request for Unit "+u.no);$("reqProblem").value="";$("reqNotes").value="";renderAll();
 }
 function renderRequests(){
- var a=state.requests.filter(x=>x.building===currentBuilding());$("requestList").innerHTML=a.map(function(r){return '<div class="item"><div><b>REQ-'+String(r.id).slice(-5)+'</b> · Unit '+r.unit+'<br>'+escapeHTML(r.problem)+'<br><small>'+escapeHTML(r.tenant)+' · '+r.priority+'</small></div><button class="secondary" data-req="'+r.id+'">Create WO</button></div>'}).join("")||'<p class="muted">No requests yet.</p>';
+ var a=state.requests.filter(function(x){return x.building===currentBuilding()&&x.status==="Open";});$("requestList").innerHTML=a.map(function(r){return '<div class="item"><div><b>REQ-'+String(r.id).slice(-5)+'</b> · Unit '+r.unit+'<br>'+escapeHTML(r.problem)+'<br><small>'+escapeHTML(r.tenant)+' · '+r.priority+'</small></div><button class="secondary" data-req="'+r.id+'">Create WO</button></div>'}).join("")||'<p class="muted">No requests yet.</p>';
  document.querySelectorAll("[data-req]").forEach(function(b){b.addEventListener("click",function(){var r=state.requests.find(x=>String(x.id)===b.dataset.req);if(r){showScreen("orders");$("woUnit").value=r.unit;$("woProblem").value=r.problem;$("woPriority").value=r.priority;$("woNotes").value=r.notes||""}})});
 }
 function readPhotos(files,done){
@@ -304,7 +304,7 @@ function addWorkOrder(){
 }
 
 function renderOrders(){
- var a=state.orders.filter(x=>x.building===currentBuilding());
+ var a=state.orders.filter(function(x){return x.building===currentBuilding()&&x.status!=="Completed";});
  $("orderList").innerHTML=a.map(function(o){
   var photosBefore=(o.beforePhotos||[]).map(function(p){return '<img src="'+p+'">'}).join("");
   var photosAfter=(o.afterPhotos||[]).map(function(p){return '<img src="'+p+'">'}).join("");
