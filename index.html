@@ -120,12 +120,27 @@ function renderUnits(){
 function openUnit(id){selectedUnit=id;renderUnits();setTimeout(function(){$("unitDetails").scrollIntoView({behavior:"smooth",block:"start"})},50)}
 function unitEditor(id){
  var u=state.units.find(x=>x.id===id),o=occupied(u);if(!u)return "";
- return '<div class="card details"><h3>Unit '+u.no+' Details</h3><select id="unitStatus"><option value="vacant" '+(!o?"selected":"")+'>Vacant</option><option value="occupied" '+(o?"selected":"")+'>Occupied</option></select><div id="tenantFields" class="'+(!o?"hidden":"")+'"><input id="tenantName" placeholder="Tenant name" value="'+escapeHTML(u.tenant)+'"><input id="tenantPhone" placeholder="Phone number" value="'+escapeHTML(u.phone)+'"><label class="muted">Move-in date</label><input id="moveIn" type="date" value="'+u.moveIn+'"><label class="muted">Move-out date</label><input id="moveOut" type="date" value="'+u.moveOut+'"><textarea id="unitNotes" placeholder="Notes">'+escapeHTML(u.notes)+'</textarea></div><div id="vacantMessage" class="notice '+(o?"hidden":"")+'">This unit is vacant. Work orders and maintenance requests are disabled.</div><button class="primary" id="saveUnit">Save Unit</button> <button class="secondary" id="closeUnit">Close</button></div>';
+ var requestForm=o?
+ '<div class="card details" style="margin-top:10px"><h3>📝 Maintenance Request</h3><input id="unitReqProblem" placeholder="What needs to be repaired?"><select id="unitReqPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><textarea id="unitReqNotes" placeholder="Additional notes"></textarea><button class="primary" id="submitUnitRequest">Submit Request</button></div>':'';
+ return '<div class="card details"><h3>Unit '+u.no+' Details</h3><select id="unitStatus"><option value="vacant" '+(!o?"selected":"")+'>Vacant</option><option value="occupied" '+(o?"selected":"")+'>Occupied</option></select><div id="tenantFields" class="'+(!o?"hidden":"")+'"><input id="tenantName" placeholder="Tenant name" value="'+escapeHTML(u.tenant)+'"><input id="tenantPhone" placeholder="Phone number" value="'+escapeHTML(u.phone)+'"><label class="muted">Move-in date</label><input id="moveIn" type="date" value="'+u.moveIn+'"><label class="muted">Move-out date</label><input id="moveOut" type="date" value="'+u.moveOut+'"><textarea id="unitNotes" placeholder="Notes">'+escapeHTML(u.notes)+'</textarea></div><div id="vacantMessage" class="notice '+(o?"hidden":"")+'">This unit is vacant. Work orders and maintenance requests are disabled.</div><button class="primary" id="saveUnit">Save Unit</button> <button class="secondary" id="closeUnit">Close</button></div>'+requestForm;
 }
+
 document.addEventListener("change",function(e){if(e.target.id==="unitStatus"){var o=e.target.value==="occupied";$("tenantFields").classList.toggle("hidden",!o);$("vacantMessage").classList.toggle("hidden",o)}})
 document.addEventListener("click",function(e){
- if(e.target.id==="saveUnit")saveUnit();if(e.target.id==="closeUnit"){selectedUnit=null;renderUnits()}
+ if(e.target.id==="saveUnit")saveUnit();if(e.target.id==="closeUnit"){selectedUnit=null;renderUnits()}if(e.target.id==="submitUnitRequest")addUnitRequest()
 });
+function addUnitRequest(){
+ var u=state.units.find(x=>x.id===selectedUnit);
+ if(!u||!occupied(u))return alert("This unit is vacant. Maintenance requests are disabled.");
+ var p=$("unitReqProblem").value.trim();if(!p)return alert("Enter the maintenance problem.");
+ state.requests.unshift({id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("unitReqPriority").value,notes:$("unitReqNotes").value,status:"Open"});
+ log("New maintenance request for Unit "+u.no);
+ $("unitReqProblem").value="";$("unitReqNotes").value="";
+ renderAll();
+ selectedUnit=u.id;
+ renderUnits();
+ setTimeout(function(){var d=$("unitDetails");if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},50);
+}
 function saveUnit(){
  var u=state.units.find(x=>x.id===selectedUnit);if(!u)return;var o=$("unitStatus").value==="occupied";
  if(o&&!$("tenantName").value.trim())return alert("Enter the tenant name.");
