@@ -52,7 +52,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 </section>
 
 <section id="units" class="screen">
-<div class="card"><h2>🏠 Units</h2><p class="muted">26 floors × 10 units = 260 units per building.</p>
+<div class="card"><h2>🏠 Units & Occupancy</h2><p class="muted">Each building has 26 floors × 10 units = 260 units. Every unit shows Occupied or Vacant.</p><div class="grid"><div class="stat"><b id="occupiedUnits">0</b>Occupied</div><div class="stat"><b id="vacantUnits">0</b>Vacant</div><div class="stat"><b id="totalUnits">260</b>Total Units</div><div class="stat"><b id="occupancyRate">0%</b>Occupancy</div></div><div class="hr"></div>
 <div class="row"><div><label class="muted">Floor</label><select id="floorFilter"></select></div><div><label class="muted">Search</label><input id="unitSearch" placeholder="Unit or tenant"></div></div>
 <div id="unitList"></div><div id="unitDetails"></div>
 </div></section>
@@ -141,12 +141,19 @@ function renderDashboard(){
 }
 function renderUnits(){
  var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
- var a=state.units.filter(function(u){return u.building===b&&(f==="all"||String(u.floor)===f)&&(u.no+" "+u.tenant).toLowerCase().indexOf(q)>=0});
+ var all=state.units.filter(function(u){return u.building===b;});
+ var occ=all.filter(function(u){return occupied(u)}).length;
+ if($("occupiedUnits"))$("occupiedUnits").textContent=occ;
+ if($("vacantUnits"))$("vacantUnits").textContent=all.length-occ;
+ if($("totalUnits"))$("totalUnits").textContent=all.length;
+ if($("occupancyRate"))$("occupancyRate").textContent=all.length?Math.round(occ/all.length*100)+"%":"0%";
+ var a=all.filter(function(u){return (f==="all"||String(u.floor)===f)&&(u.no+" "+u.tenant).toLowerCase().indexOf(q)>=0});
  var groups={};a.forEach(function(u){(groups[u.floor]||(groups[u.floor]=[])).push(u)});
- $("unitList").innerHTML=Object.keys(groups).sort((a,b)=>Number(a)-Number(b)).map(function(floor){
+ $("unitList").innerHTML=Object.keys(groups).sort(function(a,b){return Number(a)-Number(b)}).map(function(floor){
   return '<div class="card"><h3>Floor '+floor+'</h3>'+groups[floor].map(function(u){
-   return '<div class="item unit" data-unit="'+u.id+'"><div><b>Unit '+u.no+'</b><br><small>'+escapeHTML(u.tenant||"No tenant")+'</small></div><span class="badge '+(occupied(u)?"":"vacant")+'">'+(occupied(u)?"Occupied":"Vacant")+'</span></div>'
-  }).join("")+'</div>'
+   var isOcc=occupied(u);
+   return '<div class="item unit" data-unit="'+u.id+'"><div><b>Unit '+u.no+'</b><br><small>'+escapeHTML(u.tenant||"No tenant")+'</small></div><span class="badge '+(isOcc?"occupied":"vacant")+'">'+(isOcc?"Occupied":"Vacant")+'</span></div>';
+  }).join("")+'</div>';
  }).join("")||'<p class="muted">No matching units.</p>';
  document.querySelectorAll(".unit").forEach(function(el){el.addEventListener("click",function(){openUnit(el.dataset.unit)})});
  $("unitDetails").innerHTML=selectedUnit?unitEditor(selectedUnit):"";
