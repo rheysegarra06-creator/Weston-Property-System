@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Building Monitor</title>
+<title>Weaton Property Management • Building Monitor</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 header{background:#111827;color:white;padding:16px 12px;position:sticky;top:0;z-index:10}h1{margin:0;font-size:21px}header p{margin:3px 0 10px;color:#cbd5e1;font-size:12px}
@@ -20,7 +20,7 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 </head>
 <body>
 <header>
-<h1>🏢 Building Monitor</h1><p>Prototype • Buildings 1765 & 1775</p>
+<h1>🏢 Weaton Property Management</h1><p>Building Monitor • 1765 & 1775</p>
 <nav id="nav">
 <button data-screen="dashboard" class="active">Dashboard</button>
 <button data-screen="units">Units</button>
@@ -37,7 +37,12 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <div class="card stat"><b id="openCount">0</b>Open Work Orders</div><div class="card stat"><b id="progressCount">0</b>In Progress</div>
 <div class="card stat"><b id="doneCount">0</b>Completed</div><div class="card stat"><b id="lowCount">0</b>Low Stock</div>
 </div>
-<div class="card"><h3>System status</h3><p class="muted">Prototype rebuilt from scratch. Data is stored on this device.</p></div>
+<div class="card"><h3>System status</h3>
+<p class="muted">Your building data is saved automatically on this iPhone in local storage. GitHub stores the app code; your live building data stays on this device.</p>
+<div id="saveStatus" class="notice">💾 Checking local storage…</div>
+<div class="row"><button class="secondary" id="exportData">⬇️ Backup Data</button><button class="secondary" id="importDataBtn">⬆️ Restore Data</button></div>
+<input id="importData" type="file" accept="application/json" class="hidden">
+</div>
 <div class="card"><h3>Recent Activity</h3><div id="activity"></div></div>
 </section>
 
@@ -79,7 +84,44 @@ if(!state){
 }
 var selectedUnit=null;
 function $(id){return document.getElementById(id)}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function save(){
+ try{
+  localStorage.setItem(KEY,JSON.stringify(state));
+  var s=$("saveStatus");
+  if(s){s.textContent="💾 Saved on this iPhone • "+new Date().toLocaleTimeString();}
+ }catch(e){
+  var s=$("saveStatus");
+  if(s){s.textContent="⚠️ Could not save on this device. Use Backup Data to protect your records.";}
+ }
+}
+function storageReady(){
+ try{
+  var t="__building_monitor_test__";
+  localStorage.setItem(t,"1");localStorage.removeItem(t);
+  return true;
+ }catch(e){return false}
+}
+function exportData(){
+ try{
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="weaton-building-monitor-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ }catch(e){alert("Backup could not be created.");}
+}
+function importData(file){
+ if(!file)return;
+ var reader=new FileReader();
+ reader.onload=function(){
+  try{
+   var imported=JSON.parse(reader.result);
+   if(!imported||!Array.isArray(imported.units)||!Array.isArray(imported.orders)||!Array.isArray(imported.requests)||!Array.isArray(imported.staff)||!Array.isArray(imported.inventory))throw new Error("Invalid backup");
+   if(!confirm("Restore this backup? Current data on this iPhone will be replaced."))return;
+   state=imported;selectedUnit=null;save();renderAll();alert("Backup restored successfully.");
+  }catch(e){alert("That file is not a valid Building Monitor backup.");}
+ };
+ reader.readAsText(file);
+}
 function log(msg){state.activity.unshift(new Date().toLocaleString()+" — "+msg);state.activity=state.activity.slice(0,20);save()}
 function occupied(u){
  if(u.moveOut){var d=new Date(u.moveOut+"T23:59:59");if(!isNaN(d)&&d<=new Date()){u.tenant="";u.phone="";u.moveIn="";u.moveOut="";u.notes="";save();return false}}
@@ -100,6 +142,10 @@ function setup(){
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
  $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);
+ $("exportData").addEventListener("click",exportData);
+ $("importDataBtn").addEventListener("click",function(){$("importData").click()});
+ $("importData").addEventListener("change",function(e){importData(e.target.files[0]);e.target.value=""});
+ if(storageReady()){$("saveStatus").textContent="💾 Auto-save is ON • Data stays on this iPhone."}else{$("saveStatus").textContent="⚠️ Local storage is unavailable. Use Backup Data."}
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff()}
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(x=>'<div class="item"><small>'+escapeHTML(x)+'</small></div>').join("")||'<p class="muted">No activity yet.</p>'}
@@ -165,6 +211,9 @@ function renderInventory(){
 function addStaff(){var n=$("staffName").value.trim();if(!n)return;state.staff.push({id:Date.now(),name:n});$("staffName").value="";log("Added staff: "+n);save();renderAll()}
 function renderStaff(){$("staffList").innerHTML=state.staff.map(s=>'<div class="item"><b>'+escapeHTML(s.name)+'</b><span class="badge">Active</span></div>').join("")}
 setup();renderAll();
+setInterval(function(){save()},30000);
+document.addEventListener("visibilitychange",function(){if(document.hidden)save()});
+window.addEventListener("beforeunload",save);
 })();
 </script>
 </body>
