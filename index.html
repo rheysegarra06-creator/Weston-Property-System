@@ -28,7 +28,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 </head>
 <body>
 <header>
-<h1>🏢 Building Superintendent<br>1775 & 1765</h1><p>Inventory • Units • Maintenance • Work Orders • Suppliers</p><div class="currentBuilding"><label>Current Building</label><select id="building"><option value="1765">1765</option><option value="1775">1775</option></select></div>
+<h1>🏢 Building Superintendent<br>1775 & 1765</h1><p>Inventory • Units • Maintenance • Work Orders • Suppliers</p><div class="currentBuilding"><label>Current Building</label><select id="building"><option value="1765">1765</option><option value="1775">1775</option></select><span id="saveStatus" style="font-size:12px;color:#cbd5e1">💾 Saved</span></div>
 <nav id="nav">
 <button type="button" data-screen="dashboard" class="active">Dashboard</button>
 <button type="button" data-screen="units">Units</button>
@@ -114,8 +114,17 @@ if(!state){
 var selectedUnit=null;
 function $(id){return document.getElementById(id)}
 function save(){
- try{localStorage.setItem(KEY,JSON.stringify(state));return true}
- catch(e){alert("The work order could not be saved because this iPhone's browser storage is full. Photos were compressed; please try again with fewer/smaller photos.");return false}
+ try{
+  localStorage.setItem(KEY,JSON.stringify(state));
+  var el=document.getElementById("saveStatus");
+  if(el)el.textContent="💾 Saved "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+  return true
+ }catch(e){
+  var el=document.getElementById("saveStatus");
+  if(el)el.textContent="⚠️ Save failed";
+  alert("The data could not be saved because this iPhone's browser storage is full. Photos were compressed; please try again with fewer/smaller photos.");
+  return false
+ }
 }
 function log(msg){state.activity.unshift(new Date().toLocaleString()+" — "+msg);state.activity=state.activity.slice(0,20);save()}
 function occupied(u){
@@ -138,7 +147,7 @@ function setup(){
  $("building").value="1765";$("unitsBuilding").value="1765";
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
  $("building").addEventListener("change",function(){$("unitsBuilding").value=$("building").value;selectedUnit=null;renderAll()});$("unitsBuilding").addEventListener("change",function(){$("building").value=$("unitsBuilding").value;selectedUnit=null;renderAll()});$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("prevFloor").addEventListener("click",function(){changeFloor(-1)});$("nextFloor").addEventListener("click",function(){changeFloor(1)});$("historySearch").addEventListener("input",renderHistory);
- $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);$("woAfterPhotos").addEventListener("change",previewCreateAfterPhotos);
+ if($("submitRequest"))$("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);$("woAfterPhotos").addEventListener("change",previewCreateAfterPhotos);
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderHistory();renderInventory();renderStaff()}
 function renderDashboard(){
@@ -334,6 +343,8 @@ function renderStaff(){$("staffList").innerHTML=state.staff.map(s=>'<div class="
 function printSummary(){window.print()}
 function backupData(){var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="building-monitor-backup.json";a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
 function restoreData(){var i=document.createElement("input");i.type="file";i.accept=".json,application/json";i.onchange=function(){var f=i.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!x.units||!x.requests||!x.orders||!x.inventory)throw Error();state=x;save();alert("Backup restored.");renderAll()}catch(e){alert("That backup file is not valid.")}};r.readAsText(f)};i.click()}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")save()});
+window.addEventListener("pagehide",function(){save()});
 setup();renderAll();
 })();
 </script>
