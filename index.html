@@ -63,10 +63,23 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 </section>
 
 <section id="orders" class="screen" aria-label="Work Orders">
-<div class="card"><h2>🛠 Work Order</h2><select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required"><div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div><textarea id="woNotes" placeholder="Notes"></textarea><label class="muted">Before photos — at least 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Select 3 or more photos before starting the work.</small><div id="beforePreview" class="photo-grid"></div><button class="primary" id="createWO">Create Work Order</button></div>
-<div class="card"><h3>Work Orders</h3><p class="muted">After the work is done, a work order must have at least 3 AFTER photos before it can be completed.</p><div id="orderList"></div></div>
+<div class="card">
+<h2>🛠 Professional Work Order</h2>
+<p class="muted">Create, assign, document and complete maintenance work.</p>
+<div class="grid">
+<div class="field"><label>Building / Unit</label><select id="woUnit"></select></div>
+<div class="field"><label>Category</label><select id="woCategory"><option>Plumbing</option><option>Electrical</option><option>HVAC</option><option>Appliance</option><option>Carpentry</option><option>Painting</option><option>General Maintenance</option></select></div>
+<div class="field"><label>Priority</label><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select></div>
+<div class="field"><label>Assigned Staff</label><select id="woStaff"></select></div>
+</div>
+<div class="field"><label>Problem / Description</label><textarea id="woProblem" placeholder="Describe the tenant's problem or required repair"></textarea></div>
+<div class="field"><label>Due Date</label><input id="woDueDate" type="date"></div>
+<div class="field"><label>Before Photos — minimum 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Document the condition before work starts.</small><div id="beforePreview" class="photoGrid"></div></div>
+<div class="field"><label>Notes</label><textarea id="woNotes" placeholder="Additional instructions or notes"></textarea></div>
+<button class="btn primary" id="createWO">Create Work Order</button>
+</div>
+<div class="card"><h3>Active & Recent Work Orders</h3><div id="orderList"></div></div>
 </section>
-
 
 <section id="history" class="screen">
 <div class="card"><h2>📜 Work Order History</h2>
@@ -233,11 +246,11 @@ function addWorkOrder(){
  readPhotos(files,function(before){
   var request=state.requests.find(r=>r.building===currentBuilding()&&r.unit===u.no&&r.status==="Open");
   var now=new Date().toISOString();
-  var order={id:Date.now(),building:currentBuilding(),unit:u.no,tenant:u.tenant,problem:p,priority:$("woPriority").value,staff:s?s.name:"",notes:$("woNotes").value,status:"Open",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:"",completedAt:"",beforePhotos:before,afterPhotos:[],requestId:request?request.id:null};
+  var order={id:Date.now(),building:currentBuilding(),floor:u.floor,unit:u.no,tenant:u.tenant,category:$("woCategory").value,problem:p,priority:$("woPriority").value,staff:s?s.name:"",dueDate:$("woDueDate").value,notes:$("woNotes").value,status:"Open",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:"",completedAt:"",beforePhotos:before,afterPhotos:[],workPerformed:"",labourHours:0,labourCost:0,materialCost:0,totalCost:0,requestId:request?request.id:null};
   state.orders.unshift(order);
   if(request){request.status="Converted to Work Order";request.workOrderId=order.id}
   log("Created work order for Unit "+u.no+" requested by "+u.tenant);
-  $("woProblem").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("beforePreview").innerHTML="";
+  $("woProblem").value="";$("woNotes").value="";$("woDueDate").value="";$("woBeforePhotos").value="";$("beforePreview").innerHTML="";
   save();renderAll();
  });
 }
@@ -251,12 +264,12 @@ function renderOrders(){
   if(o.status==="Open"){
    action='<button class="secondary" data-start="'+o.id+'">Start Work</button>';
   }else if(o.status==="In Progress"){
-   action='<div style="width:100%"><label class="muted">After photos — at least 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photo-grid"></div><button class="primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
+   action='<div style="width:100%"><div class="field"><label>Work Performed</label><textarea id="workPerformed-'+o.id+'" placeholder="Describe the repair completed"></textarea></div><div class="grid"><div class="field"><label>Labour Hours</label><input id="labourHours-'+o.id+'" type="number" min="0" step="0.25" placeholder="0"></div><div class="field"><label>Labour Cost ($)</label><input id="labourCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div><div class="field"><label>Material Cost ($)</label><input id="materialCost-'+o.id+'" type="number" min="0" step="0.01" placeholder="0.00"></div></div><label class="muted">After photos — minimum 3</label><input id="afterPhotos-'+o.id+'" type="file" accept="image/*" multiple onchange="previewAfterPhotos('+o.id+')"><div id="afterPreview-'+o.id+'" class="photoGrid"></div><button class="btn primary" data-complete="'+o.id+'">Complete Work Order</button></div>';
   }
-  return '<div class="item" style="display:block"><div><b>WO-'+String(o.id).slice(-5)+'</b> · Unit '+o.unit+'<br><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br>'+escapeHTML(o.problem)+'<br><small>'+o.priority+' · '+escapeHTML(o.staff)+' · '+o.status+'</small><div class="history"><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</div></div><p><b>Before ('+(o.beforePhotos||[]).length+')</b></p><div class="photo-grid">'+photosBefore+'</div>'+(o.afterPhotos&&o.afterPhotos.length?'<p><b>After ('+o.afterPhotos.length+')</b></p><div class="photo-grid">'+photosAfter+'</div>':"")+'<div style="margin-top:10px">'+action+'</div></div>';
+  return '<div class="item" style="display:block"><div><b>WO-'+String(o.id).slice(-5)+'</b> · Building '+o.building+' · Floor '+(o.floor||"—")+' · Unit '+o.unit+'<br><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br><b>Category:</b> '+escapeHTML(o.category||"General Maintenance")+'<br>'+escapeHTML(o.problem)+'<br><small>'+o.priority+' · '+escapeHTML(o.staff)+' · '+o.status+(o.dueDate?' · Due '+o.dueDate:'')+'</small><div class="history"><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</div></div><p><b>Before ('+(o.beforePhotos||[]).length+')</b></p><div class="photo-grid">'+photosBefore+'</div>'+(o.afterPhotos&&o.afterPhotos.length?'<p><b>After ('+o.afterPhotos.length+')</b></p><div class="photo-grid">'+photosAfter+'</div>':"")+'<div style="margin-top:10px">'+action+'</div></div>';
  }).join("")||'<p class="muted">No work orders.</p>';
  document.querySelectorAll("[data-start]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.start);if(!o)return;o.status="In Progress";o.startedAt=new Date().toISOString();log("Started WO for Unit "+o.unit);save();renderAll()})});
- document.querySelectorAll("[data-complete]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.complete);var input=$("afterPhotos-"+o.id);if(!input||input.files.length<3)return alert("Please select at least 3 AFTER photos before completing.");readPhotos(input.files,function(after){o.afterPhotos=after;o.status="Completed";o.completedAt=new Date().toISOString();log("Completed WO for Unit "+o.unit);save();renderAll()})})});
+ document.querySelectorAll("[data-complete]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.complete);var input=$("afterPhotos-"+o.id);if(!input||input.files.length<3)return alert("Please select at least 3 AFTER photos before completing.");readPhotos(input.files,function(after){o.afterPhotos=after;o.workPerformed=$("workPerformed-"+o.id).value.trim();o.labourHours=Number($("labourHours-"+o.id).value||0);o.labourCost=Number($("labourCost-"+o.id).value||0);o.materialCost=Number($("materialCost-"+o.id).value||0);o.totalCost=o.labourCost+o.materialCost;o.status="Completed";o.completedAt=new Date().toISOString();log("Completed WO for Unit "+o.unit);save();renderAll()})})});
 }
 
 function renderHistory(){
