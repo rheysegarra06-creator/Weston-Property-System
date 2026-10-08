@@ -22,12 +22,12 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <header>
 <h1>🏢 Building Monitor</h1><p>Prototype • Buildings 1765 & 1775</p>
 <nav id="nav">
-<button data-screen="dashboard" class="active">Dashboard</button>
-<button data-screen="units">Units</button>
-<button data-screen="requests">Requests</button>
-<button data-screen="orders">Work Orders</button>
-<button data-screen="inventory">Inventory</button>
-<button data-screen="staff">Staff</button>
+<button type="button" data-screen="dashboard" class="active">Dashboard</button>
+<button type="button" data-screen="units">Units</button>
+<button type="button" data-screen="requests">Requests</button>
+<button type="button" data-screen="orders">Work Orders</button>
+<button type="button" data-screen="inventory">Inventory</button>
+<button type="button" data-screen="staff">Staff</button>
 </nav>
 </header>
 <main>
@@ -47,12 +47,12 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <div id="unitList"></div><div id="unitDetails"></div>
 </div></section>
 
-<section id="requests" class="screen">
+<section id="requests" class="screen" aria-label="Maintenance Requests">
 <div class="card"><h2>📋 Maintenance Request</h2><select id="reqUnit"></select><input id="reqTenant" placeholder="Tenant name"><input id="reqProblem" placeholder="Problem"><select id="reqPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><textarea id="reqNotes" placeholder="Notes"></textarea><button class="primary" id="submitRequest">Submit Request</button></div>
 <div class="card"><h3>Requests</h3><div id="requestList"></div></div>
 </section>
 
-<section id="orders" class="screen">
+<section id="orders" class="screen" aria-label="Work Orders">
 <div class="card"><h2>🛠 Work Order</h2><select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required"><div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div><textarea id="woNotes" placeholder="Notes"></textarea><button class="primary" id="createWO">Create Work Order</button></div>
 <div class="card"><h3>Work Orders</h3><div id="orderList"></div></div>
 </section>
@@ -89,12 +89,14 @@ function currentBuilding(){return $("building").value}
 function activeUnits(){return state.units.filter(function(u){return u.building===currentBuilding()&&occupied(u)})}
 function escapeHTML(s){return String(s||"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function showScreen(id){
+ var target=$(id);if(!target)return;
  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active")});
- $(id).classList.add("active");
+ target.classList.add("active");
  document.querySelectorAll("#nav button").forEach(function(b){b.classList.toggle("active",b.dataset.screen===id)});
  renderAll();
+ window.scrollTo(0,0);
 }
-document.querySelectorAll("#nav button").forEach(function(b){b.addEventListener("click",function(){showScreen(b.dataset.screen)})});
+$("nav").addEventListener("click",function(e){var b=e.target.closest("button[data-screen]");if(!b)return;e.preventDefault();showScreen(b.dataset.screen);});
 function setup(){
  $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
