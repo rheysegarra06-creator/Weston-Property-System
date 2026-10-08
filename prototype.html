@@ -27,7 +27,7 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <button data-screen="requests">Requests</button>
 <button data-screen="orders">Work Orders</button>
 <button data-screen="inventory">Inventory</button>
-<button data-screen="staff">Staff</button>
+<button data-screen="staff">Staff</button><button data-screen="history">History</button>
 </nav>
 </header>
 <main>
@@ -70,6 +70,9 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <div class="card"><h2>👷 Staff</h2><input id="staffName" placeholder="Staff name"><button class="primary" id="addStaff">Add Staff</button></div>
 <div class="card"><div id="staffList"></div></div>
 </section>
+<section id="history" class="screen">
+<div class="card"><h2>📜 History</h2><p class="muted">Saved activity from this building monitor.</p><div id="historyList"></div></div>
+</section>
 </main>
 <script>
 (function(){
@@ -78,10 +81,24 @@ var KEY="building-monitor-prototype-v3";
 var state;
 try{state=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){state=null}
 if(!state){
+ // Try older local-storage versions before creating a brand-new database.
+ var oldKeys=["building-monitor-prototype-v2","building-monitor-prototype","weston-property-system","weaton-property-system"];
+ for(var k=0;k<oldKeys.length&&!state;k++){try{var old=JSON.parse(localStorage.getItem(oldKeys[k])||"null");if(old&&typeof old==="object")state=old}catch(e){}}
+}
+if(!state){
  state={staff:[{id:1,name:"Maintenance Staff 1"},{id:2,name:"Maintenance Staff 2"}],inventory:[{id:1,name:"LED Bulb",qty:20,min:5,unit:"pcs"},{id:2,name:"Faucet Cartridge",qty:8,min:3,unit:"pcs"},{id:3,name:"Drywall Screw",qty:100,min:20,unit:"pcs"}],orders:[],requests:[],activity:[],units:[]};
  for(var b of ["1765","1775"])for(var floor=1;floor<=26;floor++)for(var n=1;n<=10;n++)state.units.push({id:b+"-"+floor+"-"+n,building:b,floor:floor,no:String(floor*100+n),tenant:"",phone:"",moveIn:"",moveOut:"",notes:""});
- save();
 }
+state.staff=Array.isArray(state.staff)?state.staff:[];
+state.inventory=Array.isArray(state.inventory)?state.inventory:[];
+state.orders=Array.isArray(state.orders)?state.orders:[];
+state.requests=Array.isArray(state.requests)?state.requests:[];
+state.activity=Array.isArray(state.activity)?state.activity:[];
+state.units=Array.isArray(state.units)?state.units:[];
+if(!state.units.length){
+ for(var b of ["1765","1775"])for(var floor=1;floor<=26;floor++)for(var n=1;n<=10;n++)state.units.push({id:b+"-"+floor+"-"+n,building:b,floor:floor,no:String(floor*100+n),tenant:"",phone:"",moveIn:"",moveOut:"",notes:""});
+}
+save();
 var selectedUnit=null;
 function $(id){return document.getElementById(id)}
 function save(){
@@ -147,7 +164,8 @@ function setup(){
  $("importData").addEventListener("change",function(e){importData(e.target.files[0]);e.target.value=""});
  if(storageReady()){$("saveStatus").textContent="💾 Auto-save is ON • Data stays on this iPhone."}else{$("saveStatus").textContent="⚠️ Local storage is unavailable. Use Backup Data."}
 }
-function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff()}
+function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff();renderHistory()}
+function renderHistory(){$("historyList").innerHTML=state.activity.map(function(x){return '<div class="item"><small>'+escapeHTML(x)+'</small></div>'}).join("")||'<p class="muted">No history yet.</p>'}
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(x=>'<div class="item"><small>'+escapeHTML(x)+'</small></div>').join("")||'<p class="muted">No activity yet.</p>'}
 function renderUnits(){
  var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
