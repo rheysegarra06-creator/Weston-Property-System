@@ -75,8 +75,15 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 <div class="field"><label>Problem / Repair Requested</label><textarea id="woProblem" placeholder="Describe the tenant's problem or required repair"></textarea></div>
 <div class="field"><label>Due Date</label><input id="woDueDate" type="date"></div>
 <div class="field"><label>Before Photos — minimum 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Document the condition before work starts.</small><div id="beforePreview" class="photoGrid"></div></div>
+<div class="field"><label>Work Done / Repair Completed</label><textarea id="woWorkDone" placeholder="Describe exactly what was repaired, replaced or completed"></textarea></div>
+<div class="grid">
+<div class="field"><label>Labour Hours</label><input id="woLabourHours" type="number" min="0" step="0.25" placeholder="0"></div>
+<div class="field"><label>Labour Cost ($)</label><input id="woLabourCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+<div class="field"><label>Material Cost ($)</label><input id="woMaterialCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+</div>
+<div class="field"><label>After Photos — minimum 3</label><input id="woAfterPhotos" type="file" accept="image/*" multiple><small class="muted">Document the completed repair.</small><div id="afterCreatePreview" class="photoGrid"></div></div>
 <div class="field"><label>Notes</label><textarea id="woNotes" placeholder="Additional instructions or notes"></textarea></div>
-<button class="btn primary" id="createWO">Create Work Order</button>
+<button class="btn primary" id="createWO">Create Work Order — DONE</button>
 </div>
 <div class="card"><h3>Active & Recent Work Orders</h3><div id="orderList"></div></div>
 </section>
@@ -97,7 +104,7 @@ header{background:#0f172a;color:#fff;padding:16px}header h1{margin:0 0 4px;font-
 <div class="card"><h2>👷 Staff</h2><input id="staffName" placeholder="Staff name"><button class="primary" id="addStaff">Add Staff</button></div>
 <div class="card"><div id="staffList"></div></div>
 </section>
-<section id="more" class="screen"><div class="card"><h2>☰ More tools</h2><p class="muted">Less-used tools are kept here so the main navigation stays simple.</p><div class="actions"><button class="btn" onclick="showScreen('history')">📜 History</button><button class="btn" onclick="showScreen('inventory')">📦 Inventory</button><button class="btn" onclick="showScreen('staff')">👷 Staff</button><button class="btn" onclick="printSummary()">🖨 Print</button><button class="btn" onclick="backupData()">💾 Backup</button><button class="btn" onclick="restoreData()">♻ Restore</button></div></div><div class="card"><h3>Simple workflow</h3><p>1. Find a unit and confirm the tenant.</p><p>2. Create a maintenance request for an occupied unit.</p><p>3. Create a work order and assign staff.</p><p>4. Add at least 3 BEFORE photos, then 3 AFTER photos to complete.</p><p>5. Completed jobs remain in History.</p></div></section></main>
+<section id="more" class="screen"><div class="card"><h2>☰ More tools</h2><p class="muted">Less-used tools are kept here so the main navigation stays simple.</p><div class="actions"><button class="btn" onclick="showScreen('history')">📜 History</button><button class="btn" onclick="showScreen('inventory')">📦 Inventory</button><button class="btn" onclick="showScreen('staff')">👷 Staff</button><button class="btn" onclick="printSummary()">🖨 Print</button><button class="btn" onclick="backupData()">💾 Backup</button><button class="btn" onclick="restoreData()">♻ Restore</button></div></div><div class="card"><h3>Simple workflow</h3><p>1. Find a unit and confirm the tenant.</p><p>2. Create a maintenance request for an occupied unit.</p><p>3. Complete all Work Order fields, including Work Done and photos.</p><p>4. Tap Create Work Order — DONE.</p><p>5. The completed job is saved automatically to the tenant's History.</p></div></section></main>
 <script>
 (function(){
 "use strict";
@@ -133,7 +140,7 @@ function setup(){
  $("building").value="1765";$("unitsBuilding").value="1765";
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
  $("building").addEventListener("change",function(){$("unitsBuilding").value=$("building").value;selectedUnit=null;renderAll()});$("unitsBuilding").addEventListener("change",function(){$("building").value=$("unitsBuilding").value;selectedUnit=null;renderAll()});$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("prevFloor").addEventListener("click",function(){changeFloor(-1)});$("nextFloor").addEventListener("click",function(){changeFloor(1)});$("historySearch").addEventListener("input",renderHistory);
- $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
+ $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);$("woAfterPhotos").addEventListener("change",previewCreateAfterPhotos);
 }
 function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderHistory();renderInventory();renderStaff()}
 function renderDashboard(){
@@ -240,6 +247,7 @@ function previewBeforePhotos(){
  var files=$("woBeforePhotos").files,box=$("beforePreview");box.innerHTML="";
  Array.from(files).forEach(function(f){var rd=new FileReader();rd.onload=function(){var img=document.createElement("img");img.src=rd.result;box.appendChild(img)};rd.readAsDataURL(f)});
 }
+function previewCreateAfterPhotos(){var files=$("woAfterPhotos").files,box=$("afterCreatePreview");box.innerHTML="";Array.from(files).forEach(function(f){var rd=new FileReader();rd.onload=function(){var img=document.createElement("img");img.src=rd.result;box.appendChild(img)};rd.readAsDataURL(f)})}
 function previewAfterPhotos(id){
  var input=$("afterPhotos-"+id),box=$("afterPreview-"+id);if(!input||!box)return;
  box.innerHTML="";
@@ -247,18 +255,28 @@ function previewAfterPhotos(id){
 }
 function addWorkOrder(){
  var u=selectedOccupiedUnit($("woUnit").value);if(!u)return alert("This unit is vacant. Work orders are disabled.");
- var p=$("woProblem").value.trim();if(!p)return alert("Enter the problem.");
+ var p=$("woProblem").value.trim();if(!p)return alert("Enter the Problem / Repair Requested.");
+ var workDone=$("woWorkDone").value.trim();if(!workDone)return alert("Enter the Work Done / Repair Completed.");
+ if(!$("woDueDate").value)return alert("Select a Due Date.");
  var files=$("woBeforePhotos").files;if(files.length<3)return alert("Please select at least 3 BEFORE photos.");
- var s=state.staff.find(x=>String(x.id)===$("woStaff").value);
+ var afterFiles=$("woAfterPhotos").files;if(afterFiles.length<3)return alert("Please select at least 3 AFTER photos.");
+ var s=state.staff.find(x=>String(x.id)===$("woStaff").value);if(!s)return alert("Select Assigned Staff.");
+ var labourHours=Number($("woLabourHours").value);var labourCost=Number($("woLabourCost").value);var materialCost=Number($("woMaterialCost").value);
+ if(isNaN(labourHours)||labourHours<0)return alert("Enter Labour Hours.");
+ if(isNaN(labourCost)||labourCost<0)return alert("Enter Labour Cost.");
+ if(isNaN(materialCost)||materialCost<0)return alert("Enter Material Cost.");
  readPhotos(files,function(before){
-  var request=state.requests.find(r=>r.building===currentBuilding()&&r.unit===u.no&&r.status==="Open");
-  var now=new Date().toISOString();
-  var order={id:Date.now(),building:currentBuilding(),floor:u.floor,unit:u.no,tenant:u.tenant,category:$("woCategory").value,problem:p,priority:$("woPriority").value,staff:s?s.name:"",dueDate:$("woDueDate").value,notes:$("woNotes").value,status:"Open",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:"",completedAt:"",beforePhotos:before,afterPhotos:[],workPerformed:"",labourHours:0,labourCost:0,materialCost:0,totalCost:0,requestId:request?request.id:null};
-  state.orders.unshift(order);
-  if(request){request.status="Converted to Work Order";request.workOrderId=order.id}
-  log("Created work order for Unit "+u.no+" requested by "+u.tenant);
-  $("woProblem").value="";$("woNotes").value="";$("woDueDate").value="";$("woBeforePhotos").value="";$("beforePreview").innerHTML="";
-  save();renderAll();showScreen("orders");setTimeout(function(){alert("Work order saved successfully for Unit "+u.no+". It is now in Active & Recent Work Orders.")},50);
+  readPhotos(afterFiles,function(after){
+   var request=state.requests.find(r=>r.building===currentBuilding()&&r.unit===u.no&&r.status==="Open");
+   var now=new Date().toISOString();
+   var order={id:Date.now(),building:currentBuilding(),floor:u.floor,unit:u.no,tenant:u.tenant,category:$("woCategory").value,problem:p,priority:$("woPriority").value,staff:s.name,dueDate:$("woDueDate").value,notes:$("woNotes").value,status:"Completed",requestedAt:request?request.createdAt:now,createdAt:now,startedAt:now,completedAt:now,beforePhotos:before,afterPhotos:after,workPerformed:workDone,labourHours:labourHours,labourCost:labourCost,materialCost:materialCost,totalCost:labourCost+materialCost,requestId:request?request.id:null};
+   state.orders.unshift(order);
+   if(request){request.status="Completed";request.workOrderId=order.id}
+   log("Completed work order for Unit "+u.no+" — "+u.tenant);
+   $("woProblem").value="";$("woWorkDone").value="";$("woDueDate").value="";$("woLabourHours").value="";$("woLabourCost").value="";$("woMaterialCost").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("woAfterPhotos").value="";$("beforePreview").innerHTML="";$("afterCreatePreview").innerHTML="";
+   save();renderAll();showScreen("history");
+   setTimeout(function(){alert("DONE! Work order saved automatically to this tenant's Work Order History.")},50);
+  });
  });
 }
 
