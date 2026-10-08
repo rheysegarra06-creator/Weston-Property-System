@@ -26,6 +26,7 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <button type="button" data-screen="units">Units</button>
 <button type="button" data-screen="requests">Requests</button>
 <button type="button" data-screen="orders">Work Orders</button>
+<button type="button" data-screen="history">History</button>
 <button type="button" data-screen="inventory">Inventory</button>
 <button type="button" data-screen="staff">Staff</button>
 </nav>
@@ -55,6 +56,15 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <section id="orders" class="screen" aria-label="Work Orders">
 <div class="card"><h2>🛠 Work Order</h2><select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required"><div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div><textarea id="woNotes" placeholder="Notes"></textarea><label class="muted">Before photos — at least 3</label><input id="woBeforePhotos" type="file" accept="image/*" multiple><small class="muted">Select 3 or more photos before starting the work.</small><div id="beforePreview" class="photo-grid"></div><button class="primary" id="createWO">Create Work Order</button></div>
 <div class="card"><h3>Work Orders</h3><div id="orderList"></div></div>
+</section>
+
+
+<section id="history" class="screen">
+<div class="card"><h2>📜 Work Order History</h2>
+<p class="muted">Completed and past work orders for the selected building.</p>
+<input id="historySearch" placeholder="Search unit, tenant, problem or WO number">
+</div>
+<div class="card"><div id="historyList"></div></div>
 </section>
 
 <section id="inventory" class="screen">
@@ -100,10 +110,10 @@ $("nav").addEventListener("click",function(e){var b=e.target.closest("button[dat
 function setup(){
  $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
- $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
+ $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);$("historySearch").addEventListener("input",renderHistory);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);$("woBeforePhotos").addEventListener("change",previewBeforePhotos);
 }
-function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff()}
+function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderHistory();renderInventory();renderStaff()}
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(x=>'<div class="item"><small>'+escapeHTML(x)+'</small></div>').join("")||'<p class="muted">No activity yet.</p>'}
 function renderUnits(){
  var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
@@ -214,6 +224,19 @@ function renderOrders(){
  document.querySelectorAll("[data-complete]").forEach(function(b){b.addEventListener("click",function(){var o=state.orders.find(x=>String(x.id)===b.dataset.complete);var input=$("afterPhotos-"+o.id);if(!input||input.files.length<3)return alert("Please select at least 3 AFTER photos before completing.");readPhotos(input.files,function(after){o.afterPhotos=after;o.status="Completed";o.completedAt=new Date().toISOString();log("Completed WO for Unit "+o.unit);save();renderAll()})})});
 }
 
+function renderHistory(){
+ var q=($("historySearch").value||"").toLowerCase();
+ var a=state.orders.filter(function(o){
+   return o.building===currentBuilding() && (o.status==="Completed" || o.completedAt);
+ }).filter(function(o){
+   var text="WO-"+String(o.id)+" "+o.unit+" "+(o.tenant||"")+" "+(o.problem||"");
+   return text.toLowerCase().indexOf(q)>=0;
+ });
+ $("historyList").innerHTML=a.map(function(o){
+   var before=o.beforePhotos||[],after=o.afterPhotos||[];
+   return '<div class="card"><h3>WO-'+String(o.id).slice(-5)+' · Unit '+o.unit+'</h3><p><b>Tenant:</b> '+escapeHTML(o.tenant||"Unknown")+'<br><b>Problem:</b> '+escapeHTML(o.problem)+'<br><b>Priority:</b> '+escapeHTML(o.priority)+'<br><b>Staff:</b> '+escapeHTML(o.staff)+'<br><b>Requested:</b> '+escapeHTML(o.requestedAt?new Date(o.requestedAt).toLocaleString():"—")+'<br><b>Created:</b> '+escapeHTML(o.createdAt?new Date(o.createdAt).toLocaleString():"—")+'<br><b>Started:</b> '+escapeHTML(o.startedAt?new Date(o.startedAt).toLocaleString():"—")+'<br><b>Completed:</b> '+escapeHTML(o.completedAt?new Date(o.completedAt).toLocaleString():"—")+'</p><p><b>Before Photos ('+before.length+')</b></p><div class="photo-grid">'+before.map(function(p){return '<img src="'+p+'">'}).join("")+'</div><p><b>After Photos ('+after.length+')</b></p><div class="photo-grid">'+after.map(function(p){return '<img src="'+p+'">'}).join("")+'</div><p><b>Notes:</b> '+escapeHTML(o.notes||"—")+'</p></div>';
+ }).join("")||'<p class="muted">No completed work order history yet.</p>';
+}
 function renderInventory(){
  $("inventoryList").innerHTML=state.inventory.map(function(x){return '<div class="item"><div><b>'+escapeHTML(x.name)+'</b><br><small>'+x.qty+' '+x.unit+' · Minimum '+x.min+'</small></div><div><button class="secondary" data-stock="'+x.id+'" data-delta="1">＋</button> <button class="secondary" data-stock="'+x.id+'" data-delta="-1">−</button></div></div>'}).join("");
  document.querySelectorAll("[data-stock]").forEach(function(b){b.addEventListener("click",function(){var x=state.inventory.find(i=>String(i.id)===b.dataset.stock);x.qty=Math.max(0,x.qty+Number(b.dataset.delta));log((Number(b.dataset.delta)>0?"Received ":"Used ")+x.name);save();renderAll()})});
