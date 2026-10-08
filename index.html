@@ -293,6 +293,7 @@ function addWorkOrder(){
    if(request){request.status="Completed";request.workOrderId=order.id}
    log("Completed work order for Unit "+u.no+" — "+u.tenant);
    $("woProblem").value="";$("woWorkDone").value="";$("woDueDate").value="";$("woLabourHours").value="";$("woLabourCost").value="";$("woMaterialCost").value="";$("woNotes").value="";$("woBeforePhotos").value="";$("woAfterPhotos").value="";$("beforePreview").innerHTML="";$("afterCreatePreview").innerHTML="";
+$("woCategory").selectedIndex=0;$("woPriority").selectedIndex=0;if($("woStaff").options.length)$("woStaff").selectedIndex=0;if($("woUnit").options.length)$("woUnit").selectedIndex=0;
    if(!save())return;
    var saved=JSON.parse(localStorage.getItem(KEY)||"null");
    var confirmed=saved&&saved.orders&&saved.orders.some(function(x){return String(x.id)===String(order.id)&&x.status==="Completed"});
