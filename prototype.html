@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Building Monitor Prototype</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f4f6;color:#111827}
+header{background:#111827;color:#fff;padding:18px 14px;position:sticky;top:0;z-index:5}h1{margin:0;font-size:22px}header p{margin:4px 0 0;color:#cbd5e1;font-size:12px}
+nav{display:flex;gap:7px;overflow:auto;margin-top:14px}nav button{border:0;border-radius:18px;padding:9px 13px;white-space:nowrap;background:#374151;color:#fff}nav button.active{background:#fff;color:#111827}
+main{max-width:760px;margin:auto;padding:12px}.screen{display:none}.screen.active{display:block}.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 5px #0001}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{font-size:13px}.stat b{display:block;font-size:25px;margin-bottom:3px}.muted{color:#6b7280;font-size:13px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;margin:5px 0 10px}textarea{min-height:80px}
+button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding:11px 15px;font-size:15px}button.secondary{border:0;border-radius:10px;padding:10px 13px;background:#e5e7eb}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.item{border-top:1px solid #eee;padding:12px 0;display:flex;justify-content:space-between;gap:8px}.item:first-child{border-top:0}
+.badge{display:inline-block;background:#dbeafe;color:#1d4ed8;border-radius:12px;padding:4px 8px;font-size:11px}.danger{background:#fee2e2;color:#991b1b;border:0;border-radius:8px;padding:7px}
+@media(max-width:430px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>🏢 Building Monitor</h1><p>Prototype • 1765 & 1775 • Mobile Work Order System</p>
+<nav>
+<button class="active" onclick="show('dashboard',this)">Dashboard</button>
+<button onclick="show('units',this)">Units</button>
+<button onclick="show('orders',this)">Work Orders</button>
+<button onclick="show('inventory',this)">Inventory</button>
+<button onclick="show('staff',this)">Staff</button>
+</nav>
+</header>
+<main>
+<section id="dashboard" class="screen active">
+<div class="card"><label>Current Building</label><select id="building" onchange="render()"><option>1775</option><option>1765</option></select></div>
+<div class="grid">
+<div class="card stat"><b id="open">0</b>Open Work Orders</div>
+<div class="card stat"><b id="progress">0</b>In Progress</div>
+<div class="card stat"><b id="done">0</b>Completed</div>
+<div class="card stat"><b id="low">0</b>Low Stock</div>
+</div>
+<div class="card"><h3>Prototype Features</h3><p class="muted">This prototype tests the mobile navigation and basic workflows before we build the full production system.</p><p>✅ Units & tenants<br>✅ Work orders<br>✅ Inventory deduction<br>✅ Staff assignment<br>✅ Local device storage</p></div>
+<div class="card"><h3>Recent Activity</h3><div id="activity"></div></div>
+</section>
+
+<section id="units" class="screen">
+<div class="card"><h2>🏠 Units</h2><p class="muted">260 units per building • 26 floors • 10 units per floor.</p>
+<input id="unitSearch" placeholder="Search unit or tenant..." oninput="renderUnits()"><div id="unitList"></div></div>
+</section>
+
+<section id="orders" class="screen">
+<div class="card"><h2>🛠 Create Work Order</h2>
+<select id="woUnit"></select><input id="woProblem" placeholder="Problem / work required">
+<div class="row"><select id="woPriority"><option>Normal</option><option>High</option><option>Emergency</option></select><select id="woStaff"></select></div>
+<textarea id="woNotes" placeholder="Notes"></textarea>
+<button class="primary" onclick="addWO()">Create Work Order</button></div>
+<div class="card"><h3>Work Orders</h3><div id="woList"></div></div>
+</section>
+
+<section id="inventory" class="screen">
+<div class="card"><h2>📦 Inventory</h2>
+<p class="muted">Prototype: use +1 / -1 to test stock movement.</p><div id="invList"></div></div>
+</section>
+
+<section id="staff" class="screen">
+<div class="card"><h2>👷 Maintenance Staff</h2>
+<input id="staffName" placeholder="Staff name"><button class="primary" onclick="addStaff()">Add Staff</button></div>
+<div class="card"><div id="staffList"></div></div>
+</section>
+</main>
+<script>
+const KEY='building-monitor-prototype-v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{
+staff:[{id:1,name:'Maintenance Staff 1'},{id:2,name:'Maintenance Staff 2'}],
+inventory:[{id:1,name:'LED Bulb',qty:20,min:5,unit:'pcs'},{id:2,name:'Faucet Cartridge',qty:8,min:3,unit:'pcs'},{id:3,name:'Drywall Screw',qty:100,min:20,unit:'pcs'}],
+orders:[],activity:[],
+units:[]
+};
+function units(){if(db.units.length)return;for(const b of ['1765','1775'])for(let f=1;f<=26;f++)for(let n=1;n<=10;n++)db.units.push({id:b+'-'+f+'0'+n,building:b,no:String(f*100+n),tenant:'',status:'Vacant'});save()}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function log(x){db.activity.unshift(new Date().toLocaleString()+' — '+x);db.activity=db.activity.slice(0,20);save()}
+function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');render()}
+function render(){units();const b=document.getElementById('building').value;const o=db.orders.filter(x=>x.building===b);open.textContent=o.filter(x=>x.status==='Open').length;progress.textContent=o.filter(x=>x.status==='In Progress').length;done.textContent=o.filter(x=>x.status==='Completed').length;low.textContent=db.inventory.filter(x=>x.qty<=x.min).length;activity.innerHTML=db.activity.map(x=>'<div class="item"><small>'+x+'</small></div>').join('')||'<p class="muted">No activity yet.</p>';renderUnits();renderWO();renderInv();renderStaff();populate()}
+function renderUnits(){const b=building.value,q=(unitSearch.value||'').toLowerCase();const a=db.units.filter(x=>x.building===b&&((x.no+' '+x.tenant).toLowerCase().includes(q))).slice(0,40);unitList.innerHTML=a.map(x=>'<div class="item"><div><b>Unit '+x.no+'</b><br><small>'+ (x.tenant||'No tenant')+'</small></div><span class="badge">'+x.status+'</span></div>').join('')+'<p class="muted">Showing up to 40 matching units.</p>'}
+function populate(){const b=building.value;woUnit.innerHTML=db.units.filter(x=>x.building===b).map(x=>'<option value="'+x.no+'">Unit '+x.no+'</option>').join('');woStaff.innerHTML=db.staff.map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('')}
+function addWO(){const b=building.value,p=woProblem.value.trim();if(!p)return alert('Enter the problem.');const s=db.staff.find(x=>String(x.id)===String(woStaff.value));db.orders.unshift({id:Date.now(),building:b,unit:woUnit.value,problem:p,priority:woPriority.value,staff:s?s.name:'',notes:woNotes.value,status:'Open',created:new Date().toLocaleString()});log('Created WO for Unit '+woUnit.value+': '+p);woProblem.value='';woNotes.value='';save();render()}
+function renderWO(){const b=building.value,a=db.orders.filter(x=>x.building===b);woList.innerHTML=a.map(x=>'<div class="item"><div><b>WO-'+String(x.id).slice(-5)+'</b> · Unit '+x.unit+'<br>'+x.problem+'<br><small>'+x.priority+' · '+x.staff+' · '+x.status+'</small></div><button class="secondary" onclick="nextWO('+x.id+')">Next</button></div>').join('')||'<p class="muted">No work orders.</p>'}
+function nextWO(id){const x=db.orders.find(x=>x.id===id);x.status=x.status==='Open'?'In Progress':x.status==='In Progress'?'Completed':'Open';log('WO for Unit '+x.unit+' → '+x.status);save();render()}
+function renderInv(){invList.innerHTML=db.inventory.map(x=>'<div class="item"><div><b>'+x.name+'</b><br><small>'+x.qty+' '+x.unit+' · Minimum '+x.min+'</small></div><div><button class="secondary" onclick="stock('+x.id+',1)">＋</button><button class="secondary" onclick="stock('+x.id+',-1)">−</button></div></div>').join('')}
+function stock(id,d){const x=db.inventory.find(x=>x.id===id);x.qty=Math.max(0,x.qty+d);log((d>0?'Received ':'Used ')+x.name);save();render()}
+function addStaff(){const n=staffName.value.trim();if(!n)return;db.staff.push({id:Date.now(),name:n});staffName.value='';log('Added staff: '+n);save();render()}
+function renderStaff(){staffList.innerHTML=db.staff.map(x=>'<div class="item"><b>'+x.name+'</b><span class="badge">Active</span></div>').join('')}
+units();render();
+</script>
+</body>
+</html>
