@@ -15,7 +15,7 @@ input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-ra
 button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding:11px 15px;font-size:15px}button.secondary{border:0;border-radius:10px;padding:9px 12px;background:#e5e7eb}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.item{border-top:1px solid #eee;padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}.item:first-child{border-top:0}
 .badge{display:inline-block;background:#dcfce7;color:#166534;border-radius:12px;padding:5px 9px;font-size:11px;font-weight:700}.vacant{background:#dbeafe;color:#1d4ed8}.danger{background:#fee2e2;color:#991b1b}.notice{background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px;font-size:13px;margin:8px 0}
-.unit{cursor:pointer}.unit:active{background:#f9fafb}.details{border:2px solid #e5e7eb}.hidden{display:none!important}@media(max-width:430px){.row{grid-template-columns:1fr}}
+.unit{cursor:pointer}.unit:active{background:#f9fafb}.history-scroll{max-height:420px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid #e5e7eb;border-radius:12px;padding:0 10px;background:#fafafa}.history-filter{display:grid;grid-template-columns:1fr 1fr;gap:8px}.details{border:2px solid #e5e7eb}.hidden{display:none!important}@media(max-width:430px){.row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -71,7 +71,13 @@ button.primary{background:#111827;color:#fff;border:0;border-radius:10px;padding
 <div class="card"><div id="staffList"></div></div>
 </section>
 <section id="history" class="screen">
-<div class="card"><h2>📜 History</h2><p class="muted">Saved activity from this building monitor.</p><div id="historyList"></div></div>
+<div class="card"><h2>📜 History</h2><p class="muted">Search maintenance and work-order history by building and unit.</p>
+<div class="history-filter">
+<div><label class="muted">Building</label><select id="historyBuilding"><option value="1775">1775</option><option value="1765">1765</option></select></div>
+<div><label class="muted">Unit</label><select id="historyUnit"></select></div>
+</div>
+<div class="history-scroll"><div id="historyList"></div></div>
+</div>
 </section>
 </main>
 <script>
@@ -139,7 +145,7 @@ function importData(file){
  };
  reader.readAsText(file);
 }
-function log(msg){state.activity.unshift(new Date().toLocaleString()+" — "+msg);state.activity=state.activity.slice(0,20);save()}
+function log(msg){state.activity.unshift(new Date().toLocaleString()+" — Building "+currentBuilding()+" — "+msg);state.activity=state.activity.slice(0,20);save()}
 function occupied(u){
  if(u.moveOut){var d=new Date(u.moveOut+"T23:59:59");if(!isNaN(d)&&d<=new Date()){u.tenant="";u.phone="";u.moveIn="";u.moveOut="";u.notes="";save();return false}}
  return !!(u.tenant&&u.tenant.trim());
@@ -155,17 +161,37 @@ function showScreen(id){
 }
 document.querySelectorAll("#nav button").forEach(function(b){b.addEventListener("click",function(){showScreen(b.dataset.screen)})});
 function setup(){
- $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';
+ $("building").innerHTML='<option value="1775">1775</option><option value="1765">1765</option>';$("historyBuilding").value=currentBuilding();
  $("floorFilter").innerHTML='<option value="all">All Floors</option>'+Array.from({length:26},function(_,i){return '<option value="'+(i+1)+'">Floor '+(i+1)+'</option>'}).join("");
- $("building").addEventListener("change",renderAll);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
+ $("building").addEventListener("change",renderAll);$("historyBuilding").addEventListener("change",renderHistory);$("historyUnit").addEventListener("change",renderHistory);$("floorFilter").addEventListener("change",renderUnits);$("unitSearch").addEventListener("input",renderUnits);
  $("submitRequest").addEventListener("click",addRequest);$("createWO").addEventListener("click",addWorkOrder);$("addStaff").addEventListener("click",addStaff);
  $("exportData").addEventListener("click",exportData);
  $("importDataBtn").addEventListener("click",function(){$("importData").click()});
  $("importData").addEventListener("change",function(e){importData(e.target.files[0]);e.target.value=""});
  if(storageReady()){$("saveStatus").textContent="💾 Auto-save is ON • Data stays on this iPhone."}else{$("saveStatus").textContent="⚠️ Local storage is unavailable. Use Backup Data."}
 }
-function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff();renderHistory()}
-function renderHistory(){$("historyList").innerHTML=state.activity.map(function(x){return '<div class="item"><small>'+escapeHTML(x)+'</small></div>'}).join("")||'<p class="muted">No history yet.</p>'}
+function renderAll(){renderDashboard();renderUnits();populateForms();renderRequests();renderOrders();renderInventory();renderStaff();populateHistoryUnits();renderHistory()}
+function populateHistoryUnits(){
+ var b=$("historyBuilding").value||currentBuilding();
+ var current=$("historyUnit").value||"all";
+ var units=state.units.filter(function(u){return u.building===b}).sort(function(a,b){return Number(a.no)-Number(b.no)});
+ $("historyUnit").innerHTML='<option value="all">All Units</option>'+units.map(function(u){return '<option value="'+escapeHTML(u.no)+'">Unit '+escapeHTML(u.no)+'</option>'}).join("");
+ if(units.some(function(u){return u.no===current}))$("historyUnit").value=current;
+}
+function renderHistory(){
+ var b=$("historyBuilding").value||currentBuilding(),u=$("historyUnit").value||"all";
+ var a=state.activity.filter(function(x){
+   var s=typeof x==="string"?x:(x&&x.text?x.text:"");
+   if(u==="all")return s.indexOf("Unit ")>=0 && s.indexOf("Building "+b)>=0 || (s.indexOf("Building "+b)>=0);
+   return s.indexOf("Building "+b)>=0 && s.indexOf("Unit "+u)>=0;
+ });
+ // Also show older history entries that do not contain building/unit information when viewing all history.
+ if(!a.length && u==="all")a=state.activity;
+ $("historyList").innerHTML=a.map(function(x){
+   var s=typeof x==="string"?x:(x&&x.text?x.text:"");
+   return '<div class="item"><small>'+escapeHTML(s)+'</small></div>';
+ }).join("")||'<p class="muted">No history found for this selection.</p>';
+}
 function renderDashboard(){var b=currentBuilding(),o=state.orders.filter(function(x){return x.building===b});$("openCount").textContent=o.filter(x=>x.status==="Open").length;$("progressCount").textContent=o.filter(x=>x.status==="In Progress").length;$("doneCount").textContent=o.filter(x=>x.status==="Completed").length;$("lowCount").textContent=state.inventory.filter(x=>x.qty<=x.min).length;$("activity").innerHTML=state.activity.map(x=>'<div class="item"><small>'+escapeHTML(x)+'</small></div>').join("")||'<p class="muted">No activity yet.</p>'}
 function renderUnits(){
  var b=currentBuilding(),q=$("unitSearch").value.toLowerCase(),f=$("floorFilter").value;
